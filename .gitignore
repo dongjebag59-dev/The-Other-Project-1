@@ -1,0 +1,49 @@
+# 환경 변수 / 시크릿 (절대 커밋 금지)
+.env
+*.env
+
+# 데이터베이스
+db.sqlite3
+*.db
+
+# Python 캐시
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# 가상환경
+myEnv/
+venv/
+env/
+.venv/
+.conda/
+
+# IDE / 에디터
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 루트 레벨 Django 프로젝트 파일
+config/
+main.py
+manage.py
+
+# 하위 프로젝트 (각자 별도 git 저장소로 관리)
+MY Hackathon Project/
+My First Project/
+My Second Project/
+My Third Project/
+new project/
+
+# Django 정적/미디어 파일
+staticfiles/
+mediafiles/
+media/
+
+# 빌드 / 배포
+dist/
+build/
+*.egg-info/

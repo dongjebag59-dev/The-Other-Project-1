@@ -19,7 +19,6 @@
 - [프로젝트 구조](#프로젝트-구조)
 - [DB 스키마](#db-스키마)
 - [외부 서비스](#외부-서비스)
-- [Git 작업 가이드](#git-작업-가이드)
 
 ---
 
@@ -259,43 +258,3 @@ ruff check app/        # 린트 검사
 ruff check app/ --fix  # 자동 수정
 ruff format app/       # 코드 포맷팅
 ```
-
----
-
-## Git 작업 가이드
-
-### 브랜치 전략
-
-```
-main              ← 배포 브랜치 (직접 커밋 금지)
-└── feature/xxx   ← 기능 브랜치 → PR로 main에 머지
-```
-
-### PR 올리기 전 필수
-
-```bash
-git fetch origin
-git merge origin/main   # 충돌 있으면 해결 후 커밋
-```
-
-### 커밋 메시지 규칙
-
-```
-[도메인] 작업내용
-
-예시:
-[hosting] 호스팅 취소 시 매칭 NOT_VISITED 처리 추가
-[user] SMS Rate Limiting 추가
-[fix] 체크인 타임존 버그 수정
-```
-
-### 공통 파일 수정 시 팀 공유 필수
-
-| 파일 | 역할 |
-|------|------|
-| `app/config.py` | 환경변수 설정 |
-| `app/database.py` | DB 연결 |
-| `app/main.py` | FastAPI 앱 진입점 |
-| `app/api/v1/router.py` | 라우터 통합 |
-| `requirements.txt` | 패키지 의존성 |
-| `alembic/versions/` | DB 마이그레이션 |

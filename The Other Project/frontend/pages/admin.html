@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>관리자 대시보드 - 밥동무</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    .doc-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-md) var(--space-lg);
+      border-bottom: 1px solid var(--border-light);
+      gap: var(--space-md);
+    }
+    .doc-item:last-child { border-bottom: none; }
+    .doc-item:hover { background: var(--surface-warm); }
+    .doc-info { flex: 1; min-width: 0; }
+    .doc-name { font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .doc-meta { font-size: 13px; color: var(--muted); }
+    .doc-link {
+      font-size: 13px;
+      color: var(--info);
+      text-decoration: underline;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .doc-actions { display: flex; gap: var(--space-sm); flex-shrink: 0; }
+
+    .match-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-md) var(--space-lg);
+      border-bottom: 1px solid var(--border-light);
+      gap: var(--space-md);
+    }
+    .match-item:last-child { border-bottom: none; }
+    .match-item:hover { background: var(--surface-warm); }
+    .match-info { flex: 1; min-width: 0; }
+    .match-name { font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .match-meta { font-size: 13px; color: var(--muted); }
+    .badge {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      flex-shrink: 0;
+    }
+    .badge-approved    { background: #EDF5ED; color: #3A6B39; }
+    .badge-cancelled   { background: #F0EBE6; color: #6B5E53; }
+    .badge-not-visited { background: #FDF5E6; color: #8B6914; }
+    .badge-pending   { background: #FDF5E6; color: #8B6914; }
+
+    .time-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: var(--space-md) var(--space-lg);
+      border-bottom: 1px solid var(--border-light);
+      gap: var(--space-md);
+    }
+    .time-item:last-child { border-bottom: none; }
+    .time-item:hover { background: var(--surface-warm); }
+    .time-info { flex: 1; min-width: 0; }
+    .time-name { font-weight: 600; color: var(--text); margin-bottom: 2px; }
+    .time-meta { font-size: 13px; color: var(--muted); }
+    .time-input-wrap { display: flex; align-items: center; gap: var(--space-sm); flex-shrink: 0; }
+    .time-input {
+      width: 80px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 14px;
+      text-align: center;
+      background: var(--surface);
+      color: var(--text);
+    }
+    .time-unit { font-size: 13px; color: var(--muted); }
+    .btn-stepper {
+      width: 40px;
+      height: 32px;
+      border: 1px solid var(--primary);
+      border-radius: var(--radius-sm);
+      background: transparent;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: background 150ms ease-out, color 150ms ease-out;
+    }
+    .btn-stepper:hover { background: var(--primary); color: #fff; }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-md);
+      margin-bottom: var(--space-xl);
+    }
+    @media (max-width: 640px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .doc-item, .time-item { flex-wrap: wrap; }
+    }
+
+
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 10000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.show { display: flex; }
+    .modal-box {
+      background: var(--surface, #fff);
+      border-radius: var(--radius-lg, 12px);
+      padding: var(--space-xl, 24px);
+      width: min(480px, calc(100vw - 32px));
+      box-shadow: 0 8px 32px rgba(0,0,0,0.16);
+    }
+    .modal-title { font-size: 16px; font-weight: 700; color: var(--text); margin-bottom: var(--space-sm, 8px); }
+    .modal-desc { font-size: 13px; color: var(--muted); margin-bottom: var(--space-md, 16px); }
+    .modal-textarea {
+      width: 100%;
+      min-height: 96px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm, 6px);
+      font-family: inherit;
+      font-size: 14px;
+      resize: vertical;
+      background: var(--surface);
+      color: var(--text);
+      box-sizing: border-box;
+    }
+    .modal-textarea:focus { outline: none; border-color: var(--primary, #D4763C); }
+    .modal-actions { display: flex; justify-content: flex-end; gap: var(--space-sm, 8px); margin-top: var(--space-md, 16px); }
+  </style>
+</head>
+<body>
+<div id="nav-placeholder"></div>
+
+  </div>
+
+  <main class="container page-main">
+    <div class="page-header slide-up">
+      <h1>관리자 대시보드</h1>
+      <p>처리 대기 항목과 오늘 운영 현황을 확인하세요</p>
+    </div>
+
+    <!-- 통계 카드 -->
+    <div class="stats-grid slide-up stagger-1">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-today-matches">-</div>
+        <div class="stat-label">오늘 매칭</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-total-volunteers">-</div>
+        <div class="stat-label">전체 봉사자</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-volunteers">-</div>
+        <div class="stat-label">승인된 봉사자</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-seniors">-</div>
+        <div class="stat-label">등록 어르신</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-pending">-</div>
+        <div class="stat-label">서류 승인 대기</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-time-pending">-</div>
+        <div class="stat-label">봉사시간 부여 대기</div>
+      </div>
+    </div>
+
+    <!-- 최근 매칭 신청 -->
+    <div class="section-header slide-up stagger-2">
+      <h2>최근 매칭 신청</h2>
+    </div>
+    <div class="card mb-lg slide-up stagger-2">
+      <div id="recent-match-list">
+        <div class="empty-state empty-state-sm">
+          <div class="empty-state-icon">🍚</div>
+          <p>불러오는 중...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 서류 승인/반려 -->
+    <div class="section-header slide-up stagger-3">
+      <h2>서류 승인 대기</h2>
+    </div>
+    <div class="card mb-lg slide-up stagger-3">
+      <div id="doc-list">
+        <div class="empty-state empty-state-sm">
+          <div class="empty-state-icon">📄</div>
+          <p>불러오는 중...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 봉사시간 부여 -->
+    <div class="section-header slide-up stagger-4">
+      <h2>봉사시간 부여</h2>
+      <p class="section-desc">체크인/체크아웃 기록을 확인 후 최종 봉사시간을 입력하세요</p>
+    </div>
+    <div class="card slide-up stagger-5">
+      <div id="time-list">
+        <div class="empty-state empty-state-sm">
+          <div class="empty-state-icon">⏱️</div>
+          <p>불러오는 중...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+
+  <!-- 반려사유 입력 모달 -->
+  <div class="modal-overlay" id="rejectModal">
+    <div class="modal-box">
+      <div class="modal-title">서류 반려</div>
+      <div class="modal-desc">반려 사유를 입력해주세요. 입력하지 않으면 사유 없이 반려됩니다.</div>
+      <textarea class="modal-textarea" id="rejectReasonInput" placeholder="예: 서류가 불명확하거나 내용이 누락되었습니다."></textarea>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-sm" id="rejectCancelBtn">취소</button>
+        <button class="btn btn-primary btn-sm" id="rejectSubmitBtn">반려 확인</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="access-denied" id="accessDenied">
+    <div class="access-denied-icon">🔒</div>
+    <div class="access-denied-title">관리자 전용 페이지입니다</div>
+    <div class="access-denied-sub">접근 권한이 없습니다. 로그인 페이지로 이동합니다...</div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/base.js"></script>
+  <script src="/js/footer.js"></script>
+  <script type="module">
+    import { checkAdmin } from '/js/admin.js';
+    import { formatDate, formatDatetime } from '/js/format-utils.js';
+
+    // href 속성에 javascript: URI 삽입 방지
+    function safeUrl(url) {
+      if (!url || /^javascript:/i.test(String(url).trim())) return '#';
+      if (!/^https?:\/\//i.test(url.trim())) return '#';      
+      return url;
+    }
+
+    // ── 네비게이션 ──────────────────────────────────────────
+
+    // ── 통계 ────────────────────────────────────────────────
+    async function loadStats() {
+      try {
+        const data = await api('/admin/stats');
+        document.getElementById('stat-pending').textContent = data.doc_pending ?? '-';
+        document.getElementById('stat-volunteers').textContent = data.approved_volunteers ?? '-';
+        document.getElementById('stat-total-volunteers').textContent = data.total_volunteers ?? '-';
+        document.getElementById('stat-seniors').textContent = data.seniors ?? '-';
+        document.getElementById('stat-today-matches').textContent = data.today_matches ?? '-';
+        document.getElementById('stat-time-pending').textContent = data.time_pending ?? '-';
+      } catch {
+        // 통계 API 미구현 시 무시
+      }
+    }
+
+    // ── 최근 매칭 신청 ───────────────────────────────────────
+    const STATUS_LABEL = { approved: '확정', cancelled: '취소', not_visited: '미방문' };
+    const STATUS_BADGE  = { approved: 'badge-approved', cancelled: 'badge-cancelled', not_visited: 'badge-not-visited' };
+
+    async function loadRecentMatches() {
+      const wrap = document.getElementById('recent-match-list');
+      try {
+        const matches = await api('/admin/matches/recent');
+        if (!matches.length) {
+          wrap.innerHTML = `
+            <div class="empty-state empty-state-sm">
+              <div class="empty-state-icon">🍚</div>
+              <p>아직 매칭 신청이 없어요</p>
+            </div>`;
+          return;
+        }
+        const frag = document.createDocumentFragment();
+        for (const m of matches) {
+          const item = document.createElement('div');
+          item.className = 'match-item';
+
+          const info = document.createElement('div');
+          info.className = 'match-info';
+
+          const nameDiv = document.createElement('div');
+          nameDiv.className = 'match-name';
+          nameDiv.textContent = `${m.volunteer_name} → ${m.senior_name} 어르신`;
+
+          const metaDiv = document.createElement('div');
+          metaDiv.className = 'match-meta';
+          metaDiv.textContent = `호스팅 ${formatDatetime(m.hosting_at)} · 신청 ${formatDatetime(m.created_at)}`;
+
+          info.appendChild(nameDiv);
+          info.appendChild(metaDiv);
+
+          const badge = document.createElement('span');
+          badge.className = `badge ${STATUS_BADGE[m.match_status] ?? ''}`;
+          badge.textContent = STATUS_LABEL[m.match_status] ?? m.match_status;
+
+          item.appendChild(info);
+          item.appendChild(badge);
+          frag.appendChild(item);
+        }
+        wrap.replaceChildren(frag);
+      } catch {
+        wrap.innerHTML = `
+          <div class="empty-state empty-state-sm">
+            <div class="empty-state-icon">🍚</div>
+            <p>목록을 불러올 수 없어요</p>
+          </div>`;
+      }
+    }
+
+    // ── 서류 목록 ────────────────────────────────────────────
+    async function loadDocuments() {
+      const wrap = document.getElementById('doc-list');
+      try {
+        const docs = await api('/admin/documents/pending');
+        if (!docs.length) {
+          wrap.innerHTML = `
+            <div class="empty-state empty-state-sm">
+              <div class="empty-state-icon">✅</div>
+              <p>승인 대기 중인 서류가 없어요</p>
+            </div>`;
+          return;
+        }
+        const DOC_TYPE_LABEL = {
+          criminal_record: '범죄경력조회서',
+          welfare_cert: '복지관 인증서류',
+          family_cert: '가족관계증명서',
+          identity_copy: '신분증 사본',
+        };
+        const frag = document.createDocumentFragment();
+        for (const user of docs) {
+          const item = document.createElement('div');
+          item.className = 'doc-item';
+          item.id = `doc-user-${user.user_id}`;
+
+          const info = document.createElement('div');
+          info.className = 'doc-info';
+
+          const nameDiv = document.createElement('div');
+          nameDiv.className = 'doc-name';
+          nameDiv.textContent = user.user_name;
+
+          const metaDiv = document.createElement('div');
+          metaDiv.className = 'doc-meta';
+          if (user.is_social_login) {
+            metaDiv.innerHTML = `<span class="badge-kakao">카카오</span> · 가입일 ${formatDate(user.created_at)}`;
+          } else {
+            metaDiv.textContent = `${user.user_email} · 가입일 ${formatDate(user.created_at)}`;
+          }
+
+          const linksDiv = document.createElement('div');
+          linksDiv.className = 'doc-links';
+
+          for (const d of user.documents) {
+            const a = document.createElement('a');
+            a.className = 'doc-link';
+            a.href = '#';
+            a.textContent = DOC_TYPE_LABEL[d.document_type] ?? d.document_type;
+            a.onclick = async (e) => {
+              e.preventDefault();
+              try {
+                const { url } = await api(`/users/documents/${d.document_id}/presigned-url`);
+                window.open(url, '_blank', 'noopener');
+              } catch {
+                showToast('서류를 불러올 수 없어요', 'error');
+              }
+            };
+            linksDiv.appendChild(a);
+          }
+
+          info.appendChild(nameDiv);
+          info.appendChild(metaDiv);
+          info.appendChild(linksDiv);
+
+          const actions = document.createElement('div');
+          actions.className = 'doc-actions';
+
+          const approveBtn = document.createElement('button');
+          approveBtn.className = 'btn btn-primary btn-sm';
+          approveBtn.textContent = '승인';
+          approveBtn.onclick = () => approveDoc(user.user_id);
+
+          const rejectBtn = document.createElement('button');
+          rejectBtn.className = 'btn btn-ghost btn-sm';
+          rejectBtn.textContent = '반려';
+          rejectBtn.onclick = () => rejectDoc(user.user_id);
+
+          actions.appendChild(approveBtn);
+          actions.appendChild(rejectBtn);
+
+          item.appendChild(info);
+          item.appendChild(actions);
+          frag.appendChild(item);
+        }
+        wrap.replaceChildren(frag);
+      } catch {
+        wrap.innerHTML = `
+          <div class="empty-state empty-state-sm">
+            <div class="empty-state-icon">📄</div>
+            <p>서류 목록을 불러올 수 없어요</p>
+          </div>`;
+      }
+    }
+
+    async function approveDoc(userId) {
+      try {
+        await api(`/admin/users/${userId}/approve`, { method: 'PATCH' });
+        document.getElementById(`doc-user-${userId}`)?.remove();
+        showToast('승인되었어요', 'success');
+        checkDocEmpty();
+        loadStats();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    // 반려 모달 상태
+    let _rejectDocId = null;
+    let _rejectUserId = null;
+
+    function rejectDoc(userId) {
+      _rejectDocId = null;
+      _rejectUserId = userId;
+      document.getElementById('rejectReasonInput').value = '';
+      document.getElementById('rejectModal').classList.add('show');
+      document.getElementById('rejectReasonInput').focus();
+    }
+
+    function closeRejectModal() {
+      document.getElementById('rejectModal').classList.remove('show');
+      _rejectDocId = null;
+      _rejectUserId = null;
+    }
+
+    async function submitReject() {
+      const reason = document.getElementById('rejectReasonInput').value.trim();
+      const documentId = _rejectDocId;
+      const userId = _rejectUserId;
+      closeRejectModal();
+      try {
+        await api(`/admin/users/${userId}/reject`, {
+          method: 'PATCH',
+          body: JSON.stringify({ cert_reject_reason: reason || null }),
+        });
+        document.getElementById(`doc-user-${userId}`)?.remove();
+        showToast('반려되었어요', 'error');
+        checkDocEmpty();
+        loadStats();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    function checkDocEmpty() {
+      const wrap = document.getElementById('doc-list');
+      if (!wrap.querySelector('.doc-item')) {
+        wrap.innerHTML = `
+          <div class="empty-state empty-state-sm">
+            <div class="empty-state-icon">✅</div>
+            <p>승인 대기 중인 서류가 없어요</p>
+          </div>`;
+      }
+    }
+
+    // ── 봉사시간 부여 ────────────────────────────────────────
+    async function loadTimePending() {
+      const wrap = document.getElementById('time-list');
+      try {
+        const matches = await api('/admin/matches/completed');
+        if (!matches.length) {
+          wrap.innerHTML = `
+            <div class="empty-state empty-state-sm">
+              <div class="empty-state-icon">✅</div>
+              <p>봉사시간 부여 대기 중인 매칭이 없어요</p>
+            </div>`;
+          return;
+        }
+        const frag = document.createDocumentFragment();
+        for (const m of matches) {
+          const item = document.createElement('div');
+          item.className = 'time-item';
+          item.id = `match-${m.matching_id}`;
+
+          const info = document.createElement('div');
+          info.className = 'time-info';
+
+          const nameDiv = document.createElement('div');
+          nameDiv.className = 'time-name';
+          nameDiv.textContent = `${m.volunteer_name} → ${m.senior_name} 어르신`;
+
+          // 실제 체크인→체크아웃 경과 시간 계산
+          const elapsedMs = (m.check_in_time && m.check_out_time)
+            ? new Date(m.check_out_time) - new Date(m.check_in_time)
+            : null;
+          const rawMinutes = elapsedMs != null ? Math.floor(elapsedMs / 60000) : null;
+          const roundedMinutes = elapsedMs != null ? Math.floor(elapsedMs / 60000 / 30) * 30 : null;
+
+          const metaDiv = document.createElement('div');
+          metaDiv.className = 'time-meta';
+          metaDiv.textContent = `체크인 ${formatDatetime(m.check_in_time)} · 체크아웃 ${formatDatetime(m.check_out_time)} · 실제 ${rawMinutes ?? '-'}분 · 최대 ${m.expected_minutes ?? '-'}분`;
+
+          info.appendChild(nameDiv);
+          info.appendChild(metaDiv);
+
+          const inputWrap = document.createElement('div');
+          inputWrap.className = 'time-input-wrap';
+
+          const btnMinus = document.createElement('button');
+          btnMinus.className = 'btn-stepper';
+          btnMinus.type = 'button';
+          btnMinus.textContent = '-30';
+          btnMinus.onclick = () => stepTime(m.matching_id, -30);
+
+          const input = document.createElement('input');
+          input.className = 'time-input';
+          input.type = 'number';
+          input.min = '0';
+          if (m.expected_minutes != null) input.max = String(m.expected_minutes);
+          input.placeholder = '0';
+          input.id = `time-input-${m.matching_id}`;
+          if (roundedMinutes != null) input.value = Math.min(roundedMinutes, m.expected_minutes ?? roundedMinutes);
+
+          const unit = document.createElement('span');
+          unit.className = 'time-unit';
+          unit.textContent = '분';
+
+          const btnPlus = document.createElement('button');
+          btnPlus.className = 'btn-stepper';
+          btnPlus.type = 'button';
+          btnPlus.textContent = '+30';
+          btnPlus.onclick = () => stepTime(m.matching_id, 30);
+
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-primary btn-sm';
+          btn.textContent = '부여';
+          btn.onclick = () => grantTime(m.matching_id);
+
+          inputWrap.appendChild(btnMinus);
+          inputWrap.appendChild(input);
+          inputWrap.appendChild(unit);
+          inputWrap.appendChild(btnPlus);
+          inputWrap.appendChild(btn);
+
+          item.appendChild(info);
+          item.appendChild(inputWrap);
+          frag.appendChild(item);
+        }
+        wrap.replaceChildren(frag);
+      } catch {
+        wrap.innerHTML = `
+          <div class="empty-state empty-state-sm">
+            <div class="empty-state-icon">⏱️</div>
+            <p>목록을 불러올 수 없어요</p>
+          </div>`;
+      }
+    }
+
+    function stepTime(matchingId, delta) {
+      const input = document.getElementById(`time-input-${matchingId}`);
+      const current = parseInt(input.value, 10) || 0;
+      const max = input.max !== '' ? parseInt(input.max, 10) : Infinity;
+      input.value = Math.min(max, Math.max(0, current + delta));
+    }
+
+    async function grantTime(matchingId) {
+      const input = document.getElementById(`time-input-${matchingId}`);
+      const minutes = parseInt(input.value, 10);
+      if (isNaN(minutes) || minutes < 0) {
+        showToast('올바른 시간을 입력해주세요', 'error');
+        return;
+      }
+      const max = input.max !== '' ? parseInt(input.max, 10) : null;
+      if (max !== null && minutes > max) {
+        showToast(`호스팅 시간(${max}분)을 초과하여 부여할 수 없어요`, 'error');
+        return;
+      }
+      try {
+        await api(`/admin/matches/${matchingId}/volunteer-time`, {
+          method: 'PATCH',
+          body: JSON.stringify({ actual_volunteer_time: minutes }),
+        });
+        document.getElementById(`match-${matchingId}`)?.remove();
+        showToast(`${minutes}분 부여되었어요`, 'success');
+        checkTimeEmpty();
+        loadStats();
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    function checkTimeEmpty() {
+      const wrap = document.getElementById('time-list');
+      if (!wrap.querySelector('.time-item')) {
+        wrap.innerHTML = `
+          <div class="empty-state empty-state-sm">
+            <div class="empty-state-icon">✅</div>
+            <p>봉사시간 부여 대기 중인 매칭이 없어요</p>
+          </div>`;
+      }
+    }
+
+    // ── 초기화 ───────────────────────────────────────────────
+    document.getElementById('rejectCancelBtn').addEventListener('click', closeRejectModal);
+    document.getElementById('rejectSubmitBtn').addEventListener('click', submitReject);
+
+    checkAdmin().then(ok => {
+      if (!ok) return;
+      loadStats();
+      loadRecentMatches();
+      loadDocuments();
+      loadTimePending();
+    });
+  </script>
+</body>
+</html>

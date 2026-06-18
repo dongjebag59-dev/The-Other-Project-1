@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>통계 - 밥동무</title>
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    .stats-summary {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: var(--space-md);
+      margin-bottom: var(--space-xl);
+    }
+    @media (max-width: 640px) {
+      .stats-summary { grid-template-columns: repeat(2, 1fr); }
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+    thead th {
+      text-align: left;
+      padding: var(--space-sm) var(--space-md);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    tbody td {
+      padding: var(--space-sm) var(--space-md);
+      border-bottom: 1px solid var(--border-light);
+      color: var(--text);
+    }
+    tbody tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: var(--surface-warm); }
+    .rank { font-weight: 700; color: var(--primary); width: 36px; font-variant-numeric: tabular-nums; }
+    .cell-num { font-variant-numeric: tabular-nums; }
+    .cell-muted { color: var(--muted); font-size: 13px; }
+    .badge-fail {
+      font-size: 12px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: var(--radius-full);
+      background: #F0EBE6;
+      color: #6B5E53;
+    }
+
+  </style>
+</head>
+<body>
+  <div id="nav-placeholder"></div>
+
+  <main class="container page-main">
+    <div class="page-header slide-up">
+      <h1>통계</h1>
+      <p>누적 봉사 통계와 이상 항목을 확인하세요</p>
+    </div>
+
+    <!-- 요약 카드 -->
+    <div class="stats-summary slide-up stagger-1">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-total-hours">-</div>
+        <div class="stat-label">총 봉사시간</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-avg-visits">-</div>
+        <div class="stat-label">봉사자 평균 방문</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-not-visited-rate">-</div>
+        <div class="stat-label">미방문율</div>
+      </div>
+    </div>
+
+    <!-- 봉사자별 통계 -->
+    <div class="section-header slide-up stagger-2">
+      <h2>봉사자별 방문 현황</h2>
+    </div>
+    <div class="card mb-lg slide-up stagger-2">
+      <div id="volunteer-stats">
+        <div class="empty-state empty-state-sm">
+          <div class="empty-state-icon">🍚</div>
+          <p>불러오는 중...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 미방문 현황 -->
+    <div class="section-header slide-up stagger-3">
+      <h2>미방문 현황</h2>
+    </div>
+    <div class="card mb-lg slide-up stagger-3">
+      <div id="not-visited-list">
+        <div class="empty-state empty-state-sm">
+          <div class="empty-state-icon">🍚</div>
+          <p>불러오는 중...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- SMS 발송 실패 -->
+    <div class="section-header slide-up stagger-4">
+      <h2>SMS 발송 실패</h2>
+    </div>
+    <div class="card slide-up stagger-4">
+      <div id="sms-fail-list">
+        <div class="empty-state empty-state-sm">
+          <div class="empty-state-icon">🍚</div>
+          <p>불러오는 중...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+  <div class="access-denied" id="accessDenied">
+    <div class="access-denied-icon">🔒</div>
+    <div class="access-denied-title">관리자 전용 페이지입니다</div>
+    <div class="access-denied-sub">접근 권한이 없습니다. 로그인 페이지로 이동합니다...</div>
+  </div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/base.js"></script>
+  <script src="/js/footer.js"></script>
+  <script type="module">
+    import { checkAdmin } from '/js/admin.js';
+    import { formatDatetime, escapeHtml } from '/js/format-utils.js';
+
+    const ALARM_LABEL = {
+      match: '신청 알림',
+      checkin: '체크인 알림',
+      checkout: '체크아웃 알림',
+      update: '수정 알림',
+      delete: '삭제 알림',
+    };
+
+    let _volunteerData = [];
+    let _notVisitedData = {};
+
+    function renderSummaryCards() {
+      const totalMinutes = _volunteerData.reduce((s, r) => s + (r.total_minutes || 0), 0);
+      const totalHours = Math.floor(totalMinutes / 60);
+      const avgVisits = _volunteerData.length
+        ? (_volunteerData.reduce((s, r) => s + r.visit_count, 0) / _volunteerData.length).toFixed(1)
+        : 0;
+      const totalClosed = _notVisitedData.total_closed || 0;
+      const notVisitedRate = totalClosed
+        ? Math.round(_notVisitedData.total / totalClosed * 100)
+        : 0;
+
+      document.getElementById('stat-total-hours').textContent = `${totalHours}h`;
+      document.getElementById('stat-avg-visits').textContent = `${avgVisits}회`;
+      document.getElementById('stat-not-visited-rate').textContent = `${notVisitedRate}%`;
+    }
+
+    async function init() {
+      const ok = await checkAdmin();
+      if (!ok) return;
+      await Promise.all([
+        loadVolunteerStats(),
+        loadNotVisited(),
+        loadSmsFailures(),
+      ]);
+      renderSummaryCards();
+    }
+
+    async function loadVolunteerStats() {
+      const wrap = document.getElementById('volunteer-stats');
+      try {
+        const data = await api('/admin/stats/volunteers');
+        _volunteerData = data;
+        if (!data.length) {
+          wrap.innerHTML = `<div class="empty-state empty-state-sm"><div class="empty-state-icon">🍚</div><p>아직 방문 활동이 없어요. 첫 밥동무를 기다리고 있어요!</p></div>`;
+          return;
+        }
+        wrap.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>순위</th>
+                <th>이름</th>
+                <th>이메일</th>
+                <th>방문 횟수</th>
+                <th>봉사시간 합계</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map((r, i) => `
+                <tr>
+                  <td class="rank">${i + 1}</td>
+                  <td>${escapeHtml(r.name)}</td>
+                  <td class="cell-muted">${r.is_social_login ? '<span class="badge-kakao">카카오</span>' : escapeHtml(r.email)}</td>
+                  <td class="cell-num">${r.visit_count}회</td>
+                  <td class="cell-num">${r.total_minutes ? `${Math.floor(r.total_minutes / 60)}시간 ${r.total_minutes % 60}분` : '-'}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>`;
+      } catch {
+        wrap.innerHTML = `<div class="empty-state empty-state-sm"><p>불러올 수 없어요</p></div>`;
+      }
+    }
+
+    async function loadNotVisited() {
+      const wrap = document.getElementById('not-visited-list');
+      try {
+        const data = await api('/admin/stats/not-visited');
+        _notVisitedData = data;
+        if (!data.items.length) {
+          wrap.innerHTML = `<div class="empty-state empty-state-sm"><div class="empty-state-icon">🍚</div><p>모든 봉사자가 잘 방문했어요!</p></div>`;
+          return;
+        }
+        wrap.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>봉사자</th>
+                <th>어르신</th>
+                <th>신청일</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.items.map(r => `
+                <tr>
+                  <td>${escapeHtml(r.volunteer_name)}${r.is_social_login ? ' · <span class="badge-kakao">카카오</span>' : `<span class="cell-muted"> · ${escapeHtml(r.volunteer_email)}</span>`}</td>
+                  <td>${escapeHtml(r.senior_name)}</td>
+                  <td class="cell-muted">${formatDatetime(r.created_at)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>`;
+      } catch {
+        wrap.innerHTML = `<div class="empty-state empty-state-sm"><p>불러올 수 없어요</p></div>`;
+      }
+    }
+
+    async function loadSmsFailures() {
+      const wrap = document.getElementById('sms-fail-list');
+      try {
+        const data = await api('/admin/stats/sms-failures');
+        if (!data.items.length) {
+          wrap.innerHTML = `<div class="empty-state empty-state-sm"><div class="empty-state-icon">🍚</div><p>모든 알림이 정상 발송됐어요!</p></div>`;
+          return;
+        }
+        wrap.innerHTML = `
+          <table>
+            <thead>
+              <tr>
+                <th>수신자</th>
+                <th>알림 유형</th>
+                <th>내용</th>
+                <th>발송 시각</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.items.map(r => `
+                <tr>
+                  <td>${escapeHtml(r.receiver_name)}${r.is_social_login ? ' · <span class="badge-kakao">카카오</span>' : `<span class="cell-muted"> · ${escapeHtml(r.receiver_email)}</span>`}</td>
+                  <td><span class="badge-fail">${ALARM_LABEL[r.alarm_type] ?? r.alarm_type}</span></td>
+                  <td class="cell-muted">${escapeHtml(r.contents)}</td>
+                  <td class="cell-muted">${formatDatetime(r.created_at)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>`;
+      } catch {
+        wrap.innerHTML = `<div class="empty-state empty-state-sm"><p>불러올 수 없어요</p></div>`;
+      }
+    }
+
+    init();
+  </script>
+</body>
+</html>

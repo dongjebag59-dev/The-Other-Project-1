@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>호스팅 상세 - 밥동무</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    .hidden {
+      display: none !important;
+    }
+
+    .page-shell {
+      max-width: 720px;
+    }
+
+    .profile-card,
+    .detail-section,
+    .empty-panel {
+      background: #fff;
+      border: 1px solid #E8E0D8;
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(44, 36, 32, 0.05);
+    }
+
+    .profile-card {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+
+    .profile-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, #D4763C, #5B8C5A);
+      color: #fff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .profile-details {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .profile-details h2 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      word-break: keep-all;
+    }
+
+    .profile-meta,
+    .profile-summary,
+    .detail-value,
+    .empty-panel p,
+    .section-caption {
+      color: #6B5E53;
+      line-height: 1.6;
+    }
+
+    .profile-address {
+      margin: 4px 0 0;
+      color: #6B5E53;
+      line-height: 1.6;
+      word-break: keep-all;
+    }
+
+    .profile-summary {
+      margin-top: 12px;
+    }
+
+    .detail-section {
+      margin-bottom: 24px;
+    }
+
+    .detail-section h3 {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+
+    .section-caption {
+      margin-bottom: 18px;
+      font-size: 14px;
+    }
+
+    .detail-row {
+      display: grid;
+      grid-template-columns: 120px 1fr;
+      gap: 16px;
+      padding: 12px 0;
+      border-bottom: 1px solid #F2ECE6;
+    }
+
+    .detail-row:last-child {
+      border-bottom: 0;
+    }
+
+    .detail-label {
+      color: #8C7E73;
+      font-weight: 600;
+    }
+
+    .detail-value {
+      min-width: 0;
+      word-break: break-word;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+    }
+
+    .badge-open {
+      background: #EDF5ED;
+      color: #3A6B39;
+    }
+
+    .badge-full {
+      background: #FDF5E6;
+      color: #8B6914;
+    }
+
+    .badge-failed {
+      background: #FDECEC;
+      color: #B44646;
+    }
+
+    .badge-progress {
+      background: #EEF3FF;
+      color: #4269B4;
+    }
+
+    .badge-closed {
+      background: #F0EBE6;
+      color: #6B5E53;
+    }
+
+    .action-row {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 24px;
+    }
+
+    .action-row .btn {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .status-action-button {
+      background: #F0EBE6;
+      color: #6B5E53;
+      border-color: #E8E0D8;
+      cursor: default;
+      box-shadow: none;
+    }
+
+    .status-action-button:hover,
+    .status-action-button:focus,
+    .status-action-button:active {
+      background: #F0EBE6;
+      color: #6B5E53;
+      border-color: #E8E0D8;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .back-link {
+      display: inline-flex;
+      gap: 8px;
+      align-items: center;
+      color: inherit;
+      text-decoration: none;
+      margin-bottom: 24px;
+    }
+
+    .back-link svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .empty-panel {
+      text-align: center;
+    }
+
+    .review-card {
+      padding: 16px 0 16px 16px;
+      border-bottom: 1px solid #F2ECE6;
+    }
+
+    .review-card:last-child {
+      border-bottom: 0;
+    }
+
+    .review-card-date {
+      font-size: 13px;
+      color: #8C7E73;
+      margin-bottom: 8px;
+    }
+
+    .review-card-contents {
+      color: #2C2420;
+      line-height: 1.6;
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .review-images {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .review-images img {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 8px;
+    }
+
+    .empty-panel h2 {
+      margin-top: 0;
+      margin-bottom: 10px;
+    }
+
+
+    @media (max-width: 768px) {
+      .detail-row {
+        grid-template-columns: 1fr;
+        gap: 8px;
+      }
+
+      .action-row .btn {
+        width: 100%;
+      }
+
+      .profile-card {
+        align-items: flex-start;
+      }
+
+      .profile-details h2 {
+        font-size: 24px;
+      }
+
+    }
+  </style>
+</head>
+<body>
+<div id="nav-placeholder"></div>
+
+  </div>
+
+  <main class="container page-shell">
+    <a id="back-link" href="/pages/hostings.html" class="back-link slide-up">
+      <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M12 4l-6 6 6 6"/>
+      </svg>
+      <span id="back-link-text">목록으로</span>
+    </a>
+
+    <div id="detail-content" class="hidden">
+      <section class="profile-card slide-up">
+        <div id="senior-avatar" class="profile-avatar">밥</div>
+        <div class="profile-details">
+          <h2 id="senior-name">호스팅</h2>
+          <p id="senior-meta" class="profile-meta">-</p>
+          <p id="senior-address" class="profile-address">-</p>
+          <p id="senior-summary" class="profile-summary hidden"></p>
+        </div>
+      </section>
+
+      <div class="action-row slide-up stagger-1">
+        <button id="cancel-hosting-button" class="btn btn-secondary hidden" type="button">호스팅 취소</button>
+        <button id="apply-hosting-button" class="btn btn-primary hidden" type="button">이 호스팅 신청하기</button>
+      </div>
+
+      <section class="detail-section slide-up stagger-2">
+        <h3>호스팅 정보</h3>
+        <div class="detail-row">
+          <span class="detail-label">상태</span>
+          <span id="hosting-status" class="detail-value">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">메뉴</span>
+          <span id="hosting-menu" class="detail-value">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">일시</span>
+          <span id="hosting-datetime" class="detail-value">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">모집 인원</span>
+          <span id="hosting-max-people" class="detail-value">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">어르신 특이사항</span>
+          <span id="hosting-special-note" class="detail-value">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">주소</span>
+          <span id="hosting-address" class="detail-value">-</span>
+        </div>
+        <div class="detail-row">
+          <span class="detail-label">생성일</span>
+          <span id="hosting-created-at" class="detail-value">-</span>
+        </div>
+      </section>
+
+      <section id="review-section" class="detail-section slide-up stagger-3 hidden">
+        <h3>어르신 후기</h3>
+        <p id="review-empty" class="section-caption hidden">아직 후기가 없어요.</p>
+        <div id="review-list"></div>
+      </section>
+    </div>
+
+    <section id="empty-panel" class="empty-panel hidden slide-up">
+      <h2>호스팅을 찾을 수 없어요</h2>
+      <p>삭제되었거나 접근 권한이 없는 호스팅일 수 있어요.</p>
+    </section>
+  </main>
+
+
+  <div id="footer-placeholder"></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/modal.js"></script>
+  <script type="module">
+    import {
+      requireAuth,
+      redirectByRole,
+      validateHostingDetailAccess,
+      getCurrentUser,
+    } from '/js/authGuard.js';
+    import {
+      parseApiDateTime,
+      getHostingDurationHours,
+      getGenderLabel,
+      escapeHtml,
+    } from '/js/hosting-shared.js';
+
+    const KST_TIME_ZONE = 'Asia/Seoul';
+    const VIEW_MODE_GUARDIAN = 'guardian';
+    const VIEW_MODE_VOLUNTEER = 'volunteer';
+
+    let hostingDetail = null;
+    let seniorDetail = null;
+    let viewMode = VIEW_MODE_GUARDIAN;
+    let currentUser = null;
+    let myMatchId = null;
+
+
+    function getStatusMeta(status) {
+      const metaMap = {
+        OPEN: { label: '신청가능', className: 'badge-open' },
+        FULL: { label: '모집완료', className: 'badge-full' },
+        FIXED: { label: '확정', className: 'badge-full' },
+        FAILED: { label: '취소', className: 'badge-failed' },
+        IN_PROGRESS: { label: '진행중', className: 'badge-progress' },
+        CLOSED: { label: '완료', className: 'badge-closed' },
+      };
+
+      return metaMap[status] || { label: status || '-', className: 'badge-closed' };
+    }
+
+    function formatKstDate(value, options = {}) {
+      const date = parseApiDateTime(value);
+
+      if (!date || Number.isNaN(date.getTime())) {
+        return '-';
+      }
+
+      return new Intl.DateTimeFormat('ko-KR', {
+        timeZone: KST_TIME_ZONE,
+        ...options,
+      }).format(date);
+    }
+
+    function formatDateTimeRange(hostingAt, hostingEnd) {
+      const dateText = formatKstDate(hostingAt, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'short',
+      });
+      const startTimeText = formatKstDate(hostingAt, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      const endTimeText = formatKstDate(hostingEnd, {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      });
+      const durationHours = getHostingDurationHours(hostingAt, hostingEnd);
+
+      if (dateText === '-' || startTimeText === '-' || endTimeText === '-') {
+        return '-';
+      }
+
+      if (!durationHours) {
+        return `${dateText} ${startTimeText} ~ ${endTimeText}`;
+      }
+
+      return `${dateText} ${startTimeText} ~ ${endTimeText} (${durationHours}시간 진행)`;
+    }
+
+    function setText(selector, value) {
+      document.querySelector(selector).textContent = value || '-';
+    }
+
+    function getViewMode() {
+      const params = new URLSearchParams(window.location.search);
+      const requestedViewMode = params.get('view');
+
+      if (requestedViewMode === VIEW_MODE_VOLUNTEER) {
+        return VIEW_MODE_VOLUNTEER;
+      }
+
+      return VIEW_MODE_GUARDIAN;
+    }
+
+    function getHostingId() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('id');
+    }
+
+    function getBackLinkHref() {
+      return viewMode === VIEW_MODE_VOLUNTEER
+        ? '/pages/hosting-match.html'
+        : '/pages/hostings.html';
+    }
+
+    function getBackLinkText() {
+      return viewMode === VIEW_MODE_VOLUNTEER
+        ? '호스팅 탐색으로'
+        : '호스팅 관리로';
+    }
+
+    function getDetailApiPath(hostingId) {
+      return viewMode === VIEW_MODE_VOLUNTEER
+        ? `/hostings/public/${hostingId}`
+        : `/hostings/${hostingId}`;
+    }
+
+    function isVolunteerView() {
+      return viewMode === VIEW_MODE_VOLUNTEER;
+    }
+
+    function isGuardianView() {
+      return viewMode === VIEW_MODE_GUARDIAN;
+    }
+
+    function isApplyEnabled(status) {
+      return status === 'OPEN';
+    }
+
+    function getCurrentRecruitCount() {
+      const directCount = [
+        hostingDetail?.current_people,
+        hostingDetail?.current_person_count,
+        hostingDetail?.current_match_count,
+        hostingDetail?.approved_match_count,
+        hostingDetail?.recruited_people_count,
+      ].find((value) => typeof value === 'number');
+
+      if (typeof directCount === 'number') {
+        return directCount;
+      }
+
+      if (hostingDetail?.hosting_status === 'FULL'
+        || hostingDetail?.hosting_status === 'FIXED'
+        || hostingDetail?.hosting_status === 'IN_PROGRESS'
+        || hostingDetail?.hosting_status === 'CLOSED') {
+        if (!hostingDetail.max_people) {
+          throw new Error(`호스팅 데이터에 max_people이 없습니다. hosting_id: ${hostingDetail.hosting_id}`);
+        }
+        return hostingDetail.max_people;
+      }
+
+      return 0;
+    }
+
+    function buildAddressText(address) {
+      const baseAddress = [
+        address?.road_address,
+        address?.detail_address,
+      ].filter(Boolean).join(' ').trim();
+
+      const buildingText = address?.building_name
+        || (address?.is_apartment ? '아파트' : '');
+
+      if (!baseAddress) {
+        return buildingText || '-';
+      }
+
+      if (!buildingText) {
+        return baseAddress;
+      }
+
+      return `${baseAddress} (${buildingText})`;
+    }
+
+    function buildHostingAddress() {
+      return buildAddressText(hostingDetail?.address);
+    }
+
+    function getSeniorDisplayData() {
+      return seniorDetail || hostingDetail?.senior || null;
+    }
+
+    function configurePageByViewMode() {
+      const backLinkElement = document.querySelector('#back-link');
+      const backLinkTextElement = document.querySelector('#back-link-text');
+
+      backLinkElement.href = getBackLinkHref();
+      backLinkTextElement.textContent = getBackLinkText();
+    }
+
+    function renderProfileHeader() {
+      const seniorAvatarElement = document.querySelector('#senior-avatar');
+      const seniorNameElement = document.querySelector('#senior-name');
+      const seniorMetaElement = document.querySelector('#senior-meta');
+      const seniorAddressElement = document.querySelector('#senior-address');
+      const summaryElement = document.querySelector('#senior-summary');
+      const senior = getSeniorDisplayData();
+
+      const seniorName = senior?.name || '';
+      const fullSeniorName = seniorName
+        ? `${seniorName} 어르신`
+        : `어르신 #${hostingDetail.senior_id}`;
+      const seniorAvatarText = seniorName ? seniorName.charAt(0) : '어';
+      const seniorMetaParts = [];
+      const genderLabel = getGenderLabel(senior?.gender);
+      const profileAddress = buildAddressText(senior?.address || hostingDetail?.address);
+
+      if (typeof senior?.age === 'number') {
+        seniorMetaParts.push(`${senior.age}세`);
+      }
+
+      if (genderLabel) {
+        seniorMetaParts.push(genderLabel);
+      }
+
+      seniorAvatarElement.textContent = seniorAvatarText;
+      seniorNameElement.textContent = fullSeniorName;
+      seniorMetaElement.textContent = seniorMetaParts.join(' · ') || '-';
+      seniorAddressElement.textContent = profileAddress;
+
+      if (senior?.ai_summary) {
+        summaryElement.textContent = senior.ai_summary;
+        summaryElement.classList.remove('hidden');
+      } else {
+        summaryElement.textContent = '';
+        summaryElement.classList.add('hidden');
+      }
+    }
+
+    function renderActionButtons() {
+      const cancelButtonElement = document.querySelector('#cancel-hosting-button');
+      const applyButtonElement = document.querySelector('#apply-hosting-button');
+
+      cancelButtonElement.classList.add('hidden');
+      applyButtonElement.classList.add('hidden');
+
+      cancelButtonElement.classList.remove('status-action-button');
+      cancelButtonElement.classList.add('btn-secondary');
+
+      if (isGuardianView()) {
+        cancelButtonElement.classList.remove('hidden');
+
+        if (['OPEN', 'FULL'].includes(hostingDetail.hosting_status)) {
+          cancelButtonElement.textContent = '호스팅 취소';
+          cancelButtonElement.disabled = false;
+          return;
+        }
+
+        if (['FIXED', 'IN_PROGRESS'].includes(hostingDetail.hosting_status)) {
+          cancelButtonElement.textContent = '진행 중인 호스팅';
+          cancelButtonElement.disabled = false;
+          cancelButtonElement.classList.remove('btn-secondary');
+          cancelButtonElement.classList.add('status-action-button');
+          return;
+        }
+
+        if (hostingDetail.hosting_status === 'FAILED') {
+          cancelButtonElement.textContent = '취소됨';
+          cancelButtonElement.disabled = true;
+          return;
+        }
+
+        if (hostingDetail.hosting_status === 'CLOSED') {
+          cancelButtonElement.textContent = '완료된 호스팅';
+          cancelButtonElement.disabled = true;
+          return;
+        }
+
+        cancelButtonElement.textContent = '호스팅 취소';
+        cancelButtonElement.disabled = true;
+        return;
+      }
+
+      applyButtonElement.classList.remove('hidden');
+
+      if (myMatchId !== null) {
+        if (hostingDetail.hosting_status === 'FAILED') {
+          applyButtonElement.className = 'btn status-action-button';
+          applyButtonElement.disabled = true;
+          applyButtonElement.textContent = '취소됨';
+        } else if (hostingDetail.hosting_status === 'FIXED') {
+          applyButtonElement.className = 'btn status-action-button';
+          applyButtonElement.disabled = true;
+          applyButtonElement.textContent = '확정됨';
+        } else if (hostingDetail.hosting_status === 'IN_PROGRESS') {
+          applyButtonElement.className = 'btn status-action-button';
+          applyButtonElement.disabled = true;
+          applyButtonElement.textContent = '진행중';
+        } else if (hostingDetail.hosting_status === 'CLOSED') {
+          applyButtonElement.className = 'btn status-action-button';
+          applyButtonElement.disabled = true;
+          applyButtonElement.textContent = '완료된 호스팅';
+        } else {
+          applyButtonElement.className = 'btn btn-secondary';
+          applyButtonElement.disabled = false;
+          applyButtonElement.textContent = '신청 취소';
+        }
+      } else {
+        applyButtonElement.className = 'btn btn-primary';
+        applyButtonElement.disabled = !isApplyEnabled(hostingDetail.hosting_status);
+        applyButtonElement.textContent = isApplyEnabled(hostingDetail.hosting_status)
+          ? '이 호스팅 신청하기'
+          : '현재 신청할 수 없어요';
+      }
+    }
+
+    function renderDetail() {
+      const statusMeta = getStatusMeta(hostingDetail.hosting_status);
+      const currentRecruitCount = getCurrentRecruitCount();
+
+      document.querySelector('#detail-content').classList.remove('hidden');
+      document.querySelector('#empty-panel').classList.add('hidden');
+
+      renderProfileHeader();
+
+      document.querySelector('#hosting-status').innerHTML = `<span class="badge ${statusMeta.className}">${statusMeta.label}</span>`;
+      setText('#hosting-menu', hostingDetail.menu);
+      setText('#hosting-datetime', formatDateTimeRange(hostingDetail.hosting_at, hostingDetail.hosting_end));
+      setText('#hosting-max-people', `${currentRecruitCount}명 / ${hostingDetail.max_people}명`);
+      const senior = getSeniorDisplayData();
+
+      setText('#hosting-special-note', senior?.special_note || '-');
+      setText('#hosting-address', buildHostingAddress());
+      setText('#hosting-created-at', formatKstDate(hostingDetail.created_at, {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+      }));
+
+      renderActionButtons();
+    }
+
+    function renderReviews(reviews) {
+      const sectionElement = document.querySelector('#review-section');
+      const emptyElement = document.querySelector('#review-empty');
+      const listElement = document.querySelector('#review-list');
+
+      sectionElement.classList.remove('hidden');
+
+      if (!reviews || reviews.length === 0) {
+        listElement.innerHTML = '';
+        emptyElement.classList.remove('hidden');
+        return;
+      }
+
+      emptyElement.classList.add('hidden');
+      listElement.innerHTML = reviews.map((review) => {
+        const dateText = formatKstDate(review.created_at, {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        });
+
+        const imagesHtml = review.images && review.images.length > 0
+          ? `<div class="review-images">${review.images.map((img) => `<img src="${escapeHtml(img.image_url)}" alt="후기 이미지" loading="lazy">`).join('')}</div>`
+          : '';
+
+        return `
+          <div class="review-card">
+            <p class="review-card-date">${dateText}</p>
+            <p class="review-card-contents">${escapeHtml(review.contents)}</p>
+            ${imagesHtml}
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function loadReviews(seniorId) {
+      try {
+        const reviews = await api(`/reviews/senior/${seniorId}`);
+        renderReviews(reviews);
+      } catch {
+        renderReviews([]);
+      }
+    }
+
+    async function loadDetail() {
+      const hostingId = getHostingId();
+
+      if (!hostingId) {
+        document.querySelector('#detail-content').classList.add('hidden');
+        document.querySelector('#empty-panel').classList.remove('hidden');
+        return;
+      }
+
+      try {
+        hostingDetail = await api(getDetailApiPath(hostingId));
+
+        if (isGuardianView()) {
+          seniorDetail = await api(`/seniors/${hostingDetail.senior_id}`);
+        } else {
+          seniorDetail = hostingDetail?.senior || null;
+          try {
+            const checkResult = await api(`/matches/my/check?hosting_id=${hostingId}`);
+            myMatchId = checkResult.is_applied ? checkResult.matching_id : null;
+          } catch {
+            myMatchId = null;
+          }
+        }
+
+        renderDetail();
+        loadReviews(hostingDetail.senior_id);
+      } catch (error) {
+        console.error(error);
+        document.querySelector('#detail-content').classList.add('hidden');
+        document.querySelector('#empty-panel').classList.remove('hidden');
+        await showResultModal(
+          error?.message || '호스팅 상세 정보를 불러오지 못했어요.',
+          'error',
+        );
+      }
+    }
+
+    async function cancelHosting() {
+      if (!hostingDetail) {
+        return;
+      }
+
+      if (['FIXED', 'IN_PROGRESS'].includes(hostingDetail.hosting_status)) {
+        await showResultModal(
+          '확정 이후 호스팅 변경이나 취소는 관리자에게 문의해 주세요.',
+          'info',
+        );
+        return;
+      }
+
+      if (hostingDetail.hosting_status === 'CLOSED') {
+        await showResultModal('이미 완료된 호스팅이에요.', 'info');
+        return;
+      }
+
+      if (hostingDetail.hosting_status === 'FAILED') {
+        await showResultModal('이미 취소된 호스팅이에요.', 'info');
+        return;
+      }
+
+      if (!['OPEN', 'FULL'].includes(hostingDetail.hosting_status)) {
+        await showResultModal('현재 상태에서는 보호자가 직접 취소할 수 없어요.', 'info');
+        return;
+      }
+
+      openConfirmModal({
+        title: '호스팅 취소',
+        message: '이 호스팅을 취소할까요?\n취소 후에는 다시 되돌릴 수 없어요.',
+        confirmText: '취소하기',
+        cancelText: '닫기',
+        onConfirm: async () => {
+          try {
+            await api(`/hostings/${hostingDetail.hosting_id}/cancel`, {
+              method: 'PATCH',
+            });
+
+            await loadDetail();
+            await showResultModal('호스팅이 취소되었어요.', 'success');
+          } catch (error) {
+            console.error(error);
+            await showResultModal(
+              error?.message || '호스팅 취소에 실패했어요.',
+              'error',
+            );
+          }
+        },
+      });
+    }
+
+    async function applyToHosting() {
+      if (!hostingDetail || !isApplyEnabled(hostingDetail.hosting_status)) {
+        await showResultModal('현재 신청할 수 없는 호스팅이에요.', 'info');
+        return;
+      }
+
+      openConfirmModal({
+        title: '호스팅 신청',
+        message: '이 호스팅에 신청할까요?',
+        confirmText: '신청하기',
+        cancelText: '취소',
+        onConfirm: async () => {
+          try {
+            await api('/matches/', {
+              method: 'POST',
+              body: JSON.stringify({
+                hosting_id: hostingDetail.hosting_id,
+              }),
+            });
+
+            await loadDetail();
+            await showResultModal('호스팅 신청이 완료되었어요.', 'success');
+          } catch (error) {
+            console.error(error);
+            await showResultModal(
+              error?.message || '호스팅 신청에 실패했어요.',
+              'error',
+            );
+          }
+        },
+      });
+    }
+
+    async function cancelMyMatch() {
+      openConfirmModal({
+        title: '신청 취소',
+        message: '이 호스팅 신청을 취소할까요?',
+        confirmText: '취소하기',
+        cancelText: '닫기',
+        onConfirm: async () => {
+          try {
+            await api(`/matches/${myMatchId}/cancel`, { method: 'PATCH' });
+            await loadDetail();
+            await showResultModal('신청이 취소되었어요.', 'success');
+          } catch (error) {
+            console.error(error);
+            await showResultModal(error?.message || '신청 취소에 실패했어요.', 'error');
+          }
+        },
+      });
+    }
+
+    document.querySelector('#cancel-hosting-button')?.addEventListener('click', async () => {
+      await cancelHosting();
+    });
+
+    document.querySelector('#apply-hosting-button')?.addEventListener('click', async () => {
+      if (myMatchId !== null) {
+        await cancelMyMatch();
+      } else {
+        await applyToHosting();
+      }
+    });
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') return;
+      if (document.getElementById('result-modal')?.classList.contains('open')) {
+        closeResultModal();
+        return;
+      }
+      if (document.getElementById('confirm-modal')?.classList.contains('open')) {
+        closeConfirmModal();
+      }
+    });
+
+    async function bootstrap() {
+      currentUser = await requireAuth();
+      if (!currentUser) {
+        return;
+      }
+
+      viewMode = getViewMode();
+
+      const hasAccess = await validateHostingDetailAccess(viewMode);
+      if (!hasAccess) {
+        const refreshedUser = await getCurrentUser();
+        if (refreshedUser) {
+          redirectByRole(refreshedUser.user_role);
+        } else {
+          redirectByRole(currentUser.user_role);
+        }
+        return;
+      }
+
+      configurePageByViewMode();
+      await loadDetail();
+
+      if (currentUser.user_role === 'admin') {
+        document.querySelector('.action-row')?.remove();
+      }
+    }
+
+    bootstrap();
+  </script>
+  <script src="/js/base.js"></script>
+  <script src="/js/footer.js"></script>
+</body>
+</html>

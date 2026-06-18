@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SMS 테스트 - 밥동무</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    .test-container {
+      max-width: 720px;
+      margin: 2rem auto;
+      padding: 2rem;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h2 {
+      color: #d4763c;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      border-bottom: 2px solid #d4763c;
+      padding-bottom: 0.5rem;
+    }
+    .form-group { margin-bottom: 1rem; }
+    .form-group label {
+      display: block;
+      margin-bottom: 0.3rem;
+      font-weight: 600;
+      color: #2c2420;
+    }
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: 0.6rem;
+      border: 1px solid #d4c5b8;
+      border-radius: 6px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      box-sizing: border-box;
+    }
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .checkbox-row input { width: auto; }
+    button {
+      background: #d4763c;
+      color: #fff;
+      border: none;
+      padding: 0.7rem 1.5rem;
+      border-radius: 6px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    button:hover { background: #b85f28; }
+    .result {
+      margin-top: 1rem;
+      padding: 0.8rem;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      display: none;
+    }
+    .result.success { background: #edf5ed; border: 1px solid #5b8c5a; color: #2d5a2c; display: block; }
+    .result.error { background: #fce8e8; border: 1px solid #c94c4c; color: #7a1f1f; display: block; }
+    .note {
+      background: #fdf5e6;
+      border: 1px solid #d4a63c;
+      padding: 0.8rem;
+      border-radius: 6px;
+      margin-bottom: 1rem;
+      font-size: 0.9rem;
+      color: #6b5424;
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">밥동무</a>
+    </div>
+  </nav>
+
+  <main class="container">
+    <div class="test-container">
+      <h1>SMS 테스트</h1>
+      <p style="color: #8c7e73;">구현된 SMS 서비스 함수를 직접 호출해 발송 여부를 확인합니다.</p>
+
+      <h2>1. 인증 SMS (DB 불필요)</h2>
+      <div class="note"><strong>send_auth_sms()</strong>를 호출합니다. DB 조회 없이 바로 발송됩니다.</div>
+      <form id="auth-form">
+        <div class="form-group">
+          <label>수신 번호</label>
+          <input type="text" id="auth-phone" placeholder="01012345678" required>
+        </div>
+        <div class="form-group">
+          <label>인증 코드</label>
+          <input type="text" id="auth-code" value="123456" required>
+        </div>
+        <button type="submit">인증 SMS 발송</button>
+        <div id="auth-result" class="result"></div>
+      </form>
+
+      <h2>2. 호스팅 알림 SMS (DB 필요)</h2>
+      <div class="note">
+        <strong>send_sms()</strong>를 호출합니다. DB에 hosting/user가 필요하므로
+        아래 "테스트 데이터 생성" 버튼으로 더미 데이터를 만든 뒤 자동으로 채워진 ID로 발송하세요.
+      </div>
+
+      <form id="seed-form" style="margin-bottom: 1.5rem; padding: 1rem; background: #f5f1ed; border-radius: 8px;">
+        <div class="form-group">
+          <label>보호자(수신자) 번호 — 본인 번호 권장</label>
+          <input type="text" id="seed-phone" placeholder="01012345678" required>
+        </div>
+        <button type="submit">테스트 데이터 생성</button>
+        <div id="seed-result" class="result"></div>
+      </form>
+
+      <form id="notif-form">
+        <div class="form-group">
+          <label>hosting_id</label>
+          <input type="number" id="notif-hosting" required>
+        </div>
+        <div class="form-group">
+          <label>receiver_id (보호자 등 수신자 User ID)</label>
+          <input type="number" id="notif-receiver" required>
+        </div>
+        <div class="form-group">
+          <label>alarm_type</label>
+          <select id="notif-alarm">
+            <option value="match">match (호스팅 신청)</option>
+            <option value="checkin">checkin (방문 체크인)</option>
+            <option value="checkout">checkout (방문 완료)</option>
+            <option value="update">update (호스팅 수정)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>volunteer_id (선택, match/checkin/checkout에서 사용)</label>
+          <input type="number" id="notif-volunteer">
+        </div>
+        <div class="form-group checkbox-row">
+          <input type="checkbox" id="notif-long">
+          <label for="notif-long" style="margin: 0;">장문(LMS)으로 발송</label>
+        </div>
+        <button type="submit">알림 SMS 발송</button>
+        <div id="notif-result" class="result"></div>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    const AUTH_URL = "/api/v1/test/sms/auth";
+    const NOTIF_URL = "/api/v1/test/sms/notification";
+    const SEED_URL = "/api/v1/test/sms/seed";
+
+    function showResult(el, ok, msg) {
+      el.className = "result " + (ok ? "success" : "error");
+      el.textContent = msg;
+    }
+
+    document.getElementById("auth-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const result = document.getElementById("auth-result");
+      try {
+        const res = await fetch(AUTH_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            receiver_phone: document.getElementById("auth-phone").value,
+            auth_code: document.getElementById("auth-code").value,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showResult(result, true, "✓ 발송 성공");
+        } else {
+          showResult(result, false, "✗ " + (data.detail || "발송 실패"));
+        }
+      } catch (err) {
+        showResult(result, false, "✗ 요청 오류: " + err.message);
+      }
+    });
+
+    document.getElementById("seed-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const result = document.getElementById("seed-result");
+      try {
+        const res = await fetch(SEED_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            receiver_phone: document.getElementById("seed-phone").value,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById("notif-hosting").value = data.hosting_id;
+          document.getElementById("notif-receiver").value = data.receiver_id;
+          document.getElementById("notif-volunteer").value = data.volunteer_id;
+          showResult(result,
+            true,
+            `✓ 생성 완료 — hosting_id=${data.hosting_id}, receiver_id=${data.receiver_id}, volunteer_id=${data.volunteer_id}`);
+        } else {
+          showResult(result, false, "✗ " + (data.detail || "생성 실패"));
+        }
+      } catch (err) {
+        showResult(result, false, "✗ 요청 오류: " + err.message);
+      }
+    });
+
+    document.getElementById("notif-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const result = document.getElementById("notif-result");
+      const volunteerVal = document.getElementById("notif-volunteer").value;
+      try {
+        const res = await fetch(NOTIF_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            hosting_id: Number(document.getElementById("notif-hosting").value),
+            receiver_id: Number(document.getElementById("notif-receiver").value),
+            alarm_type: document.getElementById("notif-alarm").value,
+            volunteer_id: volunteerVal ? Number(volunteerVal) : null,
+            use_long_message: document.getElementById("notif-long").checked,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          showResult(result, true, "✓ 발송 성공");
+        } else {
+          showResult(result, false, "✗ " + (data.detail || "발송 실패"));
+        }
+      } catch (err) {
+        showResult(result, false, "✗ 요청 오류: " + err.message);
+      }
+    });
+  </script>
+  <script src="/js/base.js"></script>
+</body>
+</html>

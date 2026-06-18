@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>마이페이지 - 밥동무</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/common.css">
+</head>
+<body>
+<div id="nav-placeholder"></div>
+
+  </div>
+
+  <main class="container container-narrow">
+    <div class="page-header slide-up">
+      <h1>마이페이지</h1>
+    </div>
+
+    <div class="profile-card slide-up stagger-1">
+      <div class="profile-avatar" id="profile-avatar">?</div>
+      <div class="profile-details">
+        <h2 id="profile-name">-</h2>
+        <p id="profile-role-district">-</p>
+        <p id="profile-contact">-</p>
+      </div>
+    </div>
+
+    <div class="stats-grid mb-lg slide-up stagger-2">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-val-1">-</div>
+        <div class="stat-label" id="stat-label-1"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-val-2">-</div>
+        <div class="stat-label" id="stat-label-2"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-val-3">-</div>
+        <div class="stat-label" id="stat-label-3"></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-val-4">-</div>
+        <div class="stat-label" id="stat-label-4"></div>
+      </div>
+    </div>
+
+    <div class="detail-section slide-up stagger-3">
+      <h3>내 정보</h3>
+      <div class="detail-row">
+        <span class="detail-label">이름</span>
+        <span class="detail-value" id="user-name">-</span>
+      </div>
+      <div class="detail-row" id="row-email">
+        <span class="detail-label">이메일</span>
+        <span class="detail-value" id="user-email">-</span>
+      </div>
+      <div class="detail-row" id="row-phone">
+        <span class="detail-label">전화번호</span>
+        <span class="detail-value" id="user-phone">-</span>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">주소</span>
+        <span class="detail-value" id="user-district">-</span>
+        <button id="btn-edit-info" class="btn btn-ghost btn-sm">수정</button>
+        <div id="district-edit" class="input-row flex-1" style="display:none;">
+          <input class="form-input flex-1" id="input-district" type="text" readonly>
+          <button type="button" id="btn-search-address-mypage" class="btn btn-secondary btn-sm text-nowrap">주소 검색</button>
+        </div>
+      </div>
+      <div class="detail-row">
+        <span class="detail-label">신원검증</span>
+        <span class="detail-value"><span id="cert-badge"><span class="badge badge-pending">검토 중</span></span></span>
+      </div>
+      <div id="info-msg" class="hidden mt-sm"></div>
+      <div id="edit-buttons" class="edit-actions" style="display:none;">
+        <button id="btn-save-info" class="btn btn-primary flex-1">저장</button>
+        <button id="btn-cancel-info" class="btn btn-ghost flex-1">취소</button>
+      </div>
+    </div>
+
+    <div id="reject-reason-section" class="detail-section slide-up stagger-4 hidden">
+      <h3>반려 사유</h3>
+      <div class="alert alert-error" id="reject-reason-msg"></div>
+    </div>
+
+    <div class="detail-section slide-up stagger-4">
+      <h3>서류 관리</h3>
+      <p class="text-sm text-muted mb-md">잘못된 서류를 올렸거나 변경하고 싶다면 해당 서류를 <strong>삭제</strong>하신 후 올바른 서류로 다시 <strong>업로드</strong>해주세요.</p>
+      <div id="docs-list">
+        <p class="text-muted" style="font-size:14px; padding:12px 0;">서류 목록을 불러오는 중...</p>
+      </div>
+      <p class="text-sm text-muted mt-sm">허용 파일 형식: jpg, png, pdf, hwp, docx / 최대 5MB</p>
+    </div>
+
+    <div class="detail-section slide-up stagger-5">
+      <h3>비밀번호 변경</h3>
+      <form id="password-form">
+        <div class="form-group">
+          <label class="form-label" for="current-password">현재 비밀번호</label>
+          <input class="form-input" type="password" id="current-password" placeholder="현재 비밀번호를 입력하세요">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="new-password">새 비밀번호</label>
+          <input class="form-input" type="password" id="new-password" placeholder="8자 이상 입력하세요">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="new-password-confirm">새 비밀번호 확인</label>
+          <input class="form-input" type="password" id="new-password-confirm" placeholder="새 비밀번호를 한 번 더 입력하세요">
+        </div>
+        <div id="password-error" class="alert alert-error hidden"></div>
+        <div id="password-success" class="alert alert-success hidden"></div>
+        <button type="submit" class="btn btn-primary w-full mt-md">비밀번호 변경</button>
+      </form>
+    </div>
+
+    <button id="logout-btn" class="btn btn-ghost w-full mt-xl slide-up stagger-6">로그아웃</button>
+    <button id="delete-btn" class="btn btn-danger w-full mt-sm slide-up stagger-6">회원 탈퇴</button>
+  </main>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="//t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/modal.js"></script>
+  <script type="module" src="/js/mypage.js"></script>
+  <script src="/js/base.js"></script>
+  <script src="/js/footer.js"></script>
+  <script>
+  </script>
+</body>
+</html>

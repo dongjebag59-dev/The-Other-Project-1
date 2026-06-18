@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <link rel="icon" href="/assets/icons/favicon.ico" type="image/x-icon">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>밥동무 — 독거 어르신을 위한 식사 동반 플랫폼</title>
+  <meta name="description" content="독거 어르신이 호스트가 되어 봉사자와 따뜻한 한 끼를 나눕니다. 대접하는 사람으로서의 존엄을 지키는 새로운 돌봄.">
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    /* =========================================
+       Supanova-grade Landing — "밥상 위의 정겨움"
+       Vanilla CSS, no Tailwind dependency
+       ========================================= */
+
+    /* --- Korean Typography Fix --- */
+    h1, h2, h3, p, span, div { word-break: keep-all; }
+
+    /* ===== 1. HERO — Split Screen (60/40) ===== */
+    .s-hero {
+      min-height: auto;
+      padding: clamp(80px, 10vw, 120px) 0 clamp(64px, 8vw, 96px);
+      display: flex;
+      align-items: center;
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(160deg, #F5E6D4 0%, #EDD8C4 40%, #E2CAB0 100%);
+    }
+
+    .s-hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(ellipse 60% 80% at 75% 30%, rgba(212, 118, 60, 0.10) 0%, transparent 70%),
+        radial-gradient(ellipse 40% 60% at 15% 85%, rgba(91, 140, 90, 0.06) 0%, transparent 60%);
+    }
+
+    /* Grain on hero */
+    .s-hero::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      opacity: 0.04;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      pointer-events: none;
+    }
+
+    .s-hero-inner {
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 0 var(--space-lg);
+      display: grid;
+      grid-template-columns: 1.1fr 0.9fr;
+      gap: var(--space-3xl);
+      align-items: center;
+      position: relative;
+      z-index: 2;
+    }
+
+    /* Hero Text */
+    .s-hero-text {
+      opacity: 0;
+      animation: supFadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.3s forwards;
+    }
+
+    @keyframes supFadeUp {
+      from { opacity: 0; transform: translateY(36px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .s-hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.5);
+      padding: 8px 18px;
+      border-radius: var(--radius-full);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--primary);
+      margin-bottom: var(--space-xl);
+    }
+
+    .s-pulse-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--secondary);
+      animation: supPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes supPulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(1.4); }
+    }
+
+    .s-hero-title {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 5vw, 56px);
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      margin-bottom: var(--space-lg);
+      text-wrap: balance;
+    }
+
+    .s-hero-title em {
+      font-style: normal;
+      color: var(--primary);
+      position: relative;
+      display: inline-block;
+    }
+
+    .s-hero-title em::after {
+      content: '';
+      position: absolute;
+      bottom: 4px; left: -2px; right: -2px;
+      height: 10px;
+      background: var(--primary);
+      opacity: 0.13;
+      border-radius: 4px;
+      z-index: -1;
+    }
+
+    .s-hero-desc {
+      font-size: 18px;
+      line-height: 1.75;
+      color: var(--text-soft);
+      margin-bottom: var(--space-xl);
+      max-width: 440px;
+      padding-left: var(--space-md);
+      border-left: 3px solid var(--primary);
+    }
+
+    .s-hero-desc strong { color: var(--text); }
+
+    .s-hero-actions {
+      display: flex;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+    }
+
+    .s-hero-actions .btn {
+      min-width: 200px;
+      padding: 16px 36px;
+      font-size: 16px;
+      border-radius: var(--radius-lg);
+      text-align: center;
+    }
+
+    .s-hero-actions .btn-ghost {
+      background: #fff;
+      border: 2px solid var(--primary);
+      color: var(--primary);
+      font-weight: 700;
+      padding: 14px 34px;
+    }
+    .s-hero-actions .btn-ghost:hover {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    /* Hero Visual */
+    .s-hero-visual {
+      position: relative;
+      opacity: 0;
+      animation: supFadeUp 1s cubic-bezier(0.16, 1, 0.3, 1) 0.6s forwards;
+    }
+
+    .s-bowl-scene {
+      width: 100%;
+      max-width: 440px;
+      margin: 0 auto;
+    }
+
+    .s-float-card {
+      position: absolute;
+      background: rgba(255,255,255,0.88);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.6);
+      border-radius: var(--radius-xl);
+      padding: 14px 18px;
+      box-shadow: 0 12px 40px rgba(44, 36, 32, 0.10), inset 0 1px 0 rgba(255,255,255,0.5);
+      animation: supFloat 5s ease-in-out infinite;
+    }
+
+    @keyframes supFloat {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-12px); }
+    }
+
+    .s-float-card.pos-a { bottom: 18%; left: -8%; animation-delay: 0s; }
+    .s-float-card.pos-b { top: 12%; right: -6%; animation-delay: 2s; }
+
+    .s-float-card .fc-title { font-size: 14px; font-weight: 700; color: var(--text); }
+    .s-float-card .fc-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+    /* ===== 2. SOCIAL PROOF — Testimonial Full-bleed ===== */
+    .s-testimony {
+      background: var(--text);
+      color: #F5EDE3;
+      padding: clamp(48px, 8vw, 96px) 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .s-testimony::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(circle at 15% 50%, rgba(212, 118, 60, 0.12) 0%, transparent 50%),
+        radial-gradient(circle at 85% 30%, rgba(91, 140, 90, 0.08) 0%, transparent 50%);
+    }
+
+    .s-testimony-inner {
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 var(--space-lg);
+      text-align: center;
+      position: relative;
+      z-index: 1;
+    }
+
+    .s-testimony-quote {
+      font-family: var(--font-display);
+      font-size: clamp(24px, 4vw, 36px);
+      line-height: 1.55;
+      margin-bottom: var(--space-lg);
+      text-wrap: balance;
+    }
+
+    .s-testimony-quote em {
+      font-style: normal;
+      color: #E8935A;
+    }
+
+    .s-testimony-author {
+      font-size: 15px;
+      opacity: 0.5;
+    }
+
+    /* ===== 3. FEATURES — Bento Grid (Asymmetric) ===== */
+    .s-features {
+      padding: clamp(64px, 10vw, 120px) 0;
+    }
+
+    .s-section-label {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--primary);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: var(--space-sm);
+    }
+
+    .s-section-title {
+      font-family: var(--font-display);
+      font-size: clamp(26px, 3.5vw, 36px);
+      line-height: 1.3;
+      margin-bottom: var(--space-2xl);
+      text-wrap: balance;
+    }
+
+    .s-bento {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      grid-template-rows: auto auto;
+      gap: var(--space-md);
+    }
+
+    .s-bento-card {
+      background: var(--surface);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-xl);
+      padding: var(--space-xl);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .s-bento-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    .s-bento-card::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 4px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .s-bento-card:hover::before { opacity: 1; }
+
+    .s-bento-card.span-row { grid-row: span 2; display: flex; flex-direction: column; justify-content: center; }
+
+    .s-bento-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: var(--space-md);
+    }
+
+    .s-bento-icon.warm { background: var(--primary-light); color: var(--primary); }
+    .s-bento-icon.green { background: var(--secondary-light); color: var(--secondary); }
+
+    .s-bento-icon svg { width: 24px; height: 24px; }
+
+    .s-bento-card h3 { font-size: 18px; margin-bottom: var(--space-sm); }
+    .s-bento-card p { font-size: 14px; line-height: 1.7; color: var(--muted); }
+
+    /* ===== 4. HOW — Zig-zag Alternating ===== */
+    .s-how {
+      background: var(--bg-warm);
+      padding: clamp(64px, 10vw, 120px) 0;
+    }
+
+    .s-zigzag {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-3xl);
+    }
+
+    .s-zigzag-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: var(--space-2xl);
+      align-items: center;
+    }
+
+    .s-zigzag-row.reverse { direction: rtl; }
+    .s-zigzag-row.reverse > * { direction: ltr; }
+
+    .s-zigzag-num {
+      width: 100%;
+      aspect-ratio: 1;
+      max-width: 200px;
+      margin: 0 auto;
+      border-radius: var(--radius-2xl);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 72px;
+      color: var(--primary);
+      position: relative;
+    }
+
+    .s-zigzag-num::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: var(--radius-2xl);
+      border: 2px solid var(--primary);
+      opacity: 0.15;
+    }
+
+    .s-zigzag-num::after {
+      content: '';
+      position: absolute;
+      inset: 8px;
+      border-radius: calc(var(--radius-2xl) - 4px);
+      background: var(--primary-light);
+    }
+
+    .s-zigzag-num span { position: relative; z-index: 1; }
+
+    .s-zigzag-text h3 {
+      font-size: 22px;
+      margin-bottom: var(--space-sm);
+    }
+
+    .s-zigzag-text p {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--muted);
+    }
+
+    /* ===== 5. STATS — Metrics Bar (Full-bleed Accent) ===== */
+    .s-stats {
+      background: linear-gradient(135deg, var(--primary) 0%, #B85A28 100%);
+      color: #fff;
+      padding: var(--space-2xl) 0;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .s-stats::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(ellipse at 80% 20%, rgba(255,255,255,0.08) 0%, transparent 50%);
+    }
+
+    .s-stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-lg);
+      text-align: center;
+      position: relative;
+      z-index: 1;
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 var(--space-lg);
+    }
+
+    .s-stats-val {
+      font-family: var(--font-display);
+      font-size: clamp(36px, 5vw, 52px);
+      line-height: 1;
+      margin-bottom: var(--space-xs);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .s-stats-label { font-size: 14px; opacity: 0.75; }
+
+    /* ===== 6. CTA — Full-bleed with Depth ===== */
+    .s-cta {
+      padding: clamp(64px, 10vw, 120px) 0;
+    }
+
+    .s-cta-box {
+      max-width: 760px;
+      margin: 0 auto;
+      background: var(--surface-warm);
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-2xl);
+      padding: clamp(40px, 6vw, 72px) clamp(24px, 4vw, 56px);
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .s-cta-box::before {
+      content: '';
+      position: absolute;
+      top: -80px; right: -80px;
+      width: 240px; height: 240px;
+      border-radius: 50%;
+      background: var(--primary);
+      opacity: 0.04;
+    }
+
+    .s-cta-box::after {
+      content: '';
+      position: absolute;
+      bottom: -60px; left: -60px;
+      width: 180px; height: 180px;
+      border-radius: 50%;
+      background: var(--secondary);
+      opacity: 0.04;
+    }
+
+    .s-cta-box h2 {
+      font-size: clamp(26px, 3.5vw, 36px);
+      margin-bottom: var(--space-md);
+      position: relative; z-index: 1;
+    }
+
+    .s-cta-box p {
+      font-size: 16px;
+      color: var(--muted);
+      margin-bottom: var(--space-xl);
+      position: relative; z-index: 1;
+    }
+
+    .s-cta-box .btn { position: relative; z-index: 1; }
+
+    /* ===== Scroll Reveal ===== */
+    .reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .reveal-d1 { transition-delay: 0.1s; }
+    .reveal-d2 { transition-delay: 0.2s; }
+    .reveal-d3 { transition-delay: 0.3s; }
+
+    /* ===== Responsive ===== */
+    @media (max-width: 768px) {
+      .s-hero { min-height: auto; padding: var(--space-2xl) 0 var(--space-3xl); }
+      .s-hero-inner { grid-template-columns: 1fr; gap: var(--space-xl); text-align: center; }
+      .s-hero-desc { text-align: left; margin-left: auto; margin-right: auto; }
+      .s-hero-actions { justify-content: center; }
+      .s-hero-visual { display: none; }
+
+      .s-bento { grid-template-columns: 1fr; }
+      .s-bento-card.span-row { grid-row: span 1; }
+
+      .s-zigzag-row,
+      .s-zigzag-row.reverse { grid-template-columns: 1fr; text-align: center; direction: ltr; }
+      .s-zigzag-num { max-width: 140px; font-size: 56px; }
+
+      .s-stats-grid { grid-template-columns: repeat(2, 1fr); }
+
+      .s-testimony { padding: var(--space-2xl) 0; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Nav -->
+  <nav class="nav">
+    <div class="nav-inner">
+      <a href="/" class="nav-logo">
+        <svg class="nav-logo-icon" viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="16" r="14" fill="#D4763C" opacity="0.12"/>
+          <path d="M8 18c0-4.4 3.6-8 8-8s8 3.6 8 8" stroke="#D4763C" stroke-width="2" stroke-linecap="round"/>
+          <path d="M6 18h20v1c0 3.3-2.7 6-6 6h-8c-3.3 0-6-2.7-6-6v-1z" fill="#D4763C" opacity="0.2"/>
+          <path d="M13 14c-.5-2 .5-4 3-4s3.5 2 3 4" stroke="#5B8C5A" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+        </svg>
+        밥동무
+      </a>
+      <ul class="nav-links" id="desktop-nav-links">
+        <li><a href="/pages/hostings.html">호스팅</a></li>
+        <li><a href="/pages/login.html">로그인</a></li>
+        <li><a href="/pages/register.html" class="btn btn-primary btn-sm">가입하기</a></li>
+      </ul>
+      <button class="nav-toggle" onclick="toggleNav()" aria-label="메뉴 열기">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </nav>
+
+  <div class="nav-drawer" id="navDrawer" onclick="closeNav(event)">
+    <div class="nav-drawer-content" id="drawer-nav-links">
+      <a href="/pages/hostings.html">호스팅</a>
+      <a href="/pages/login.html">로그인</a>
+      <a href="/pages/register.html">가입하기</a>
+    </div>
+  </div>
+
+  <main>
+    <!-- ===== 1. HERO — Split Screen ===== -->
+    <section class="s-hero">
+      <div class="s-hero-inner">
+        <div class="s-hero-text">
+          <div class="s-hero-badge">
+            <span class="s-pulse-dot"></span>
+            지금 5건의 밥상이 봉사자를 기다리고 있어요
+          </div>
+
+          <h1 class="s-hero-title">
+            혼자 먹지 않으니<br><em>밥맛이 돌아요</em>
+          </h1>
+
+          <p class="s-hero-desc">
+            어르신이 직접 밥상을 차리고 봉사자를 초대합니다.<br>
+            <strong>"받는 사람"이 아닌 "대접하는 사람"</strong>으로 —<br>
+            그래서 더 따뜻한 한 끼.
+          </p>
+
+          <div class="s-hero-actions">
+            <a href="/pages/register.html" class="btn btn-primary">봉사자로 시작하기</a>
+            <a href="/pages/hostings.html" class="btn btn-ghost">호스팅 둘러보기</a>
+          </div>
+        </div>
+
+        <div class="s-hero-visual">
+          <svg class="s-bowl-scene" viewBox="0 0 440 440" fill="none">
+            <!-- Table -->
+            <ellipse cx="220" cy="360" rx="190" ry="44" fill="#C4A882" opacity="0.25"/>
+
+            <!-- Main Bowl -->
+            <path d="M115 255c0-58 47-105 105-105s105 47 105 105" stroke="#D4763C" stroke-width="4" stroke-linecap="round"/>
+            <path d="M95 255h250v12c0 46-37 84-84 84h-82c-46 0-84-38-84-84v-12z" fill="#E8C5A8" opacity="0.35"/>
+            <ellipse cx="220" cy="255" rx="125" ry="22" fill="#D4763C" opacity="0.07"/>
+            <ellipse cx="220" cy="252" rx="105" ry="16" fill="#C97A3C" opacity="0.10"/>
+
+            <!-- Steam -->
+            <path d="M180 170c0-22 12-35 12-58" stroke="#D4763C" stroke-width="2.5" stroke-linecap="round" opacity="0.12">
+              <animate attributeName="d" values="M180 170c0-22 12-35 12-58;M180 165c6-22 6-40 18-62;M180 170c0-22 12-35 12-58" dur="3.2s" repeatCount="indefinite"/>
+            </path>
+            <path d="M220 160c0-22 -10-32 -6-58" stroke="#D4763C" stroke-width="2.5" stroke-linecap="round" opacity="0.10">
+              <animate attributeName="d" values="M220 160c0-22 -10-32 -6-58;M220 155c-6-22 -4-38 -12-58;M220 160c0-22 -10-32 -6-58" dur="3.8s" repeatCount="indefinite"/>
+            </path>
+            <path d="M260 165c0-22 10-30 6-52" stroke="#D4763C" stroke-width="2.5" stroke-linecap="round" opacity="0.08">
+              <animate attributeName="d" values="M260 165c0-22 10-30 6-52;M260 160c6-20 4-35 10-55;M260 165c0-22 10-30 6-52" dur="4.2s" repeatCount="indefinite"/>
+            </path>
+
+            <!-- Side dishes -->
+            <ellipse cx="85" cy="305" rx="42" ry="13" fill="#5B8C5A" opacity="0.12"/>
+            <ellipse cx="365" cy="298" rx="38" ry="11" fill="#D4A63C" opacity="0.12"/>
+
+            <!-- Chopsticks -->
+            <line x1="335" y1="210" x2="390" y2="295" stroke="#8B7355" stroke-width="3" stroke-linecap="round" opacity="0.25"/>
+            <line x1="343" y1="208" x2="398" y2="293" stroke="#8B7355" stroke-width="3" stroke-linecap="round" opacity="0.2"/>
+
+            <!-- Warmth glow -->
+            <circle cx="220" cy="230" r="85" fill="#D4763C" opacity="0.03">
+              <animate attributeName="r" values="85;100;85" dur="5s" repeatCount="indefinite"/>
+              <animate attributeName="opacity" values="0.03;0.06;0.03" dur="5s" repeatCount="indefinite"/>
+            </circle>
+          </svg>
+
+          <div class="s-float-card pos-a">
+            <div class="fc-title">김순자 어르신</div>
+            <div class="fc-sub">된장찌개 준비 완료</div>
+          </div>
+          <div class="s-float-card pos-b">
+            <div class="fc-title">봉사자 2명 매칭</div>
+            <div class="fc-sub">오늘 점심 · 정릉동</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 2. TESTIMONIAL — Full-bleed Dark ===== -->
+    <section class="s-testimony">
+      <div class="s-testimony-inner reveal">
+        <p class="s-testimony-quote">
+          "손녀딸이 온 줄 알았어.<br>
+          <em>같이 먹으니까 반찬도 더 하게 되고</em>,<br>
+          웃을 일이 생기더라고."
+        </p>
+        <p class="s-testimony-author">— 정릉동 김순자 어르신, 78세</p>
+      </div>
+    </section>
+
+    <!-- ===== 3. FEATURES — Bento Grid ===== -->
+    <section class="s-features">
+      <div class="container">
+        <div class="reveal">
+          <p class="s-section-label">왜 밥동무인가요</p>
+          <h2 class="s-section-title">받는 사람이 아닌,<br>대접하는 사람으로</h2>
+        </div>
+
+        <div class="s-bento">
+          <!-- Left: Tall card -->
+          <div class="s-bento-card span-row reveal reveal-d1">
+            <div class="s-bento-icon warm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <path d="M4 14c0-4.4 3.6-8 8-8s8 3.6 8 8"/>
+                <path d="M2 14h20v1c0 3.9-3.1 7-7 7H9c-3.9 0-7-3.1-7-7v-1z" fill="currentColor" opacity="0.1"/>
+                <path d="M9 9c-.5-2 .8-4 3-4s3.5 2 3 4" opacity="0.5"/>
+              </svg>
+            </div>
+            <h3>어르신이 호스트</h3>
+            <p>어르신이 직접 밥상을 차리고 봉사자를 초대합니다. "도움을 받는" 수동적 대상이 아니라, 자신의 요리 솜씨로 누군가를 대접하는 능동적 호스트. 존엄성을 지키는 돌봄의 새로운 방식입니다.</p>
+          </div>
+
+          <!-- Right top -->
+          <div class="s-bento-card reveal reveal-d2">
+            <div class="s-bento-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <path d="M7 12c-2-2-2-5 0-7s5-2 7 0c2-2 5-2 7 0s2 5 0 7l-7 7-7-7z"/>
+              </svg>
+            </div>
+            <h3>함께하는 식사</h3>
+            <p>동네 어르신과 함께 요리하고 함께 먹습니다. 1365 봉사시간 인정.</p>
+          </div>
+
+          <!-- Right bottom -->
+          <div class="s-bento-card reveal reveal-d3">
+            <div class="s-bento-icon warm">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round">
+                <path d="M12 3v2M12 19v2M19 12h2M3 12h2"/>
+                <circle cx="12" cy="12" r="4"/>
+                <circle cx="12" cy="12" r="8" opacity="0.2"/>
+              </svg>
+            </div>
+            <h3>안전한 구조</h3>
+            <p>최소 2인 동반 방문, 체크인/아웃 실시간 알림으로 보호자가 안심합니다.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 4. HOW — Zig-zag ===== -->
+    <section class="s-how">
+      <div class="container">
+        <div class="text-center reveal">
+          <p class="s-section-label">이용 방법</p>
+          <h2 class="s-section-title" style="margin-left:auto;margin-right:auto;">세 단계로 시작하세요</h2>
+        </div>
+
+        <div class="s-zigzag">
+          <div class="s-zigzag-row reveal">
+            <div class="s-zigzag-num"><span>1</span></div>
+            <div class="s-zigzag-text">
+              <h3>어르신 등록</h3>
+              <p>보호자가 어르신 정보를 등록합니다. 이름, 주소, 가능한 요일과 시간대, 특이사항을 알려주세요.</p>
+            </div>
+          </div>
+
+          <div class="s-zigzag-row reverse reveal">
+            <div class="s-zigzag-num"><span>2</span></div>
+            <div class="s-zigzag-text">
+              <h3>호스팅 개설</h3>
+              <p>어르신이 대접하고 싶은 메뉴와 날짜를 정하면, 관리자 승인 후 봉사자 모집이 시작됩니다.</p>
+            </div>
+          </div>
+
+          <div class="s-zigzag-row reveal">
+            <div class="s-zigzag-num"><span>3</span></div>
+            <div class="s-zigzag-text">
+              <h3>봉사자 매칭</h3>
+              <p>동네 봉사자가 호스팅에 신청하면 매칭이 확정됩니다. 체크인/아웃으로 봉사시간이 자동 기록돼요.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 5. STATS — Full-bleed Accent ===== -->
+    <section class="s-stats">
+      <div class="s-stats-grid reveal">
+        <div>
+          <div class="s-stats-val" id="stat-seniors">—</div>
+          <div class="s-stats-label">등록 어르신</div>
+        </div>
+        <div>
+          <div class="s-stats-val" id="stat-volunteers">—</div>
+          <div class="s-stats-label">활동 봉사자</div>
+        </div>
+        <div>
+          <div class="s-stats-val" id="stat-meals">—</div>
+          <div class="s-stats-label">함께한 식사</div>
+        </div>
+        <div>
+          <div class="s-stats-val" id="stat-hours">—</div>
+          <div class="s-stats-label">누적 봉사시간</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 6. CTA — Card with Depth ===== -->
+    <section class="s-cta">
+      <div class="container">
+        <div class="s-cta-box reveal">
+          <h2>따뜻한 한 끼,<br>함께 시작해볼까요?</h2>
+          <p>밥동무와 함께하면 봉사도, 식사도 더 따뜻해집니다</p>
+          <a href="/pages/register.html" class="btn btn-primary btn-lg">밥동무 시작하기</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-inner">
+      <div class="footer-top">
+        <div>
+          <div class="footer-brand">밥동무</div>
+          <p class="footer-desc">독거 어르신이 호스트가 되어 봉사자와 따뜻한 한 끼를 나누는 식사 동반 플랫폼</p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-col">
+            <h4>서비스</h4>
+            <a href="/pages/hostings.html">호스팅 둘러보기</a>
+            <a href="/pages/register.html">봉사자 가입</a>
+          </div>
+          <div class="footer-col">
+            <h4>안내</h4>
+            <a href="#">이용약관</a>
+            <a href="#">개인정보처리방침</a>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">&copy; 2026 밥동무. All rights reserved.</div>
+    </div>
+  </footer>
+
+  <script src="/js/api.js"></script>
+  <script>
+    if (isLoggedIn()) {
+      document.getElementById('desktop-nav-links').innerHTML = `
+        <li><a href="/pages/hostings.html">호스팅</a></li>
+        <li><a href="/pages/mypage.html">마이페이지</a></li>
+        <li><a onclick="logout()" style="cursor:pointer">로그아웃</a></li>
+      `;
+      document.getElementById('drawer-nav-links').innerHTML = `
+        <a href="/pages/hostings.html">호스팅</a>
+        <a href="/pages/mypage.html">마이페이지</a>
+        <a onclick="logout()" style="cursor:pointer">로그아웃</a>
+      `;
+    }
+
+    function toggleNav() {
+      const t = document.querySelector('.nav-toggle');
+      const d = document.getElementById('navDrawer');
+      t.classList.toggle('active');
+      d.classList.toggle('open');
+      document.body.style.overflow = d.classList.contains('open') ? 'hidden' : '';
+    }
+    function closeNav(e) { if (e.target === e.currentTarget) toggleNav(); }
+
+    // Scroll-triggered reveals (IntersectionObserver — Supanova standard)
+    const obs = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+    }, { threshold: 0.12, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+    // STATS 실 데이터 로딩
+    (async () => {
+      try {
+        const stats = await fetch('/api/v1/admin/public-stats').then(r => r.json());
+        document.getElementById('stat-seniors').textContent   = stats.seniors;
+        document.getElementById('stat-volunteers').textContent = stats.volunteers;
+        document.getElementById('stat-meals').textContent     = stats.total_meals;
+        document.getElementById('stat-hours').textContent     = stats.total_volunteer_hours;
+      } catch {
+        // 로딩 실패 시 — 표시 그대로 둠
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main
+
+concurrency:
+  group: deploy-to-ec2-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: EC2 배포
+        uses: appleboy/ssh-action@v1.0.3
+        env:
+          DUCKDNS_TOKEN: ${{ secrets.DUCKDNS_TOKEN }}
+          DUCKDNS_SUBDOMAIN: ${{ secrets.DUCKDNS_SUBDOMAIN }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ec2-user
+          key: ${{ secrets.EC2_SSH_KEY }}
+          envs: DUCKDNS_TOKEN,DUCKDNS_SUBDOMAIN,POSTGRES_PASSWORD
+          script: |
+            set -euo pipefail
+            cd ~/babdongmu
+            echo "::STAGE:: git pull"
+            git fetch origin && git reset --hard origin/main
+
+            echo "::STAGE:: cronie install"
+            if ! command -v crontab >/dev/null 2>&1; then
+              sudo dnf install -y cronie
+            fi
+            echo "::STAGE:: crond enable"
+            sudo systemctl enable crond
+            echo "::STAGE:: crond start"
+            sudo systemctl start crond
+
+            echo "::STAGE:: duckdns dir"
+            mkdir -p ~/duckdns
+            chmod 700 ~/duckdns
+            ( umask 177 && printf '%s' "$DUCKDNS_TOKEN" > ~/duckdns/token )
+            ( umask 177 && printf '%s' "$DUCKDNS_SUBDOMAIN" > ~/duckdns/subdomain )
+            install -m 700 scripts/duckdns-update.sh ~/duckdns/duck.sh
+
+            echo "::STAGE:: crontab register"
+            # 기존 crontab 이 없으면 crontab -l 이 exit 1. pipefail 우회용으로 tmp 파일 사용.
+            CRONTAB_TMP=$(mktemp)
+            crontab -l 2>/dev/null > "$CRONTAB_TMP" || true
+            sed -i '/duckdns\/duck.sh/d' "$CRONTAB_TMP"
+            echo '*/5 * * * * /home/ec2-user/duckdns/duck.sh' >> "$CRONTAB_TMP"
+            crontab "$CRONTAB_TMP"
+            rm -f "$CRONTAB_TMP"
+
+            echo "::STAGE:: duckdns first run"
+            # 실패해도 배포 중단하지 않음. 5분 cron 이 자동 재시도.
+            ~/duckdns/duck.sh || echo "::WARNING:: duckdns first sync failed, cron will retry"
+
+            echo "::STAGE:: docker build/up"
+            export PUBLIC_DOMAIN="${DUCKDNS_SUBDOMAIN}.duckdns.org"
+            export FRONTEND_BASE_URL="https://${PUBLIC_DOMAIN}"
+            # envs 로 이미 주입됐지만 docker-compose interpolation 을 위해 명시적 export
+            export POSTGRES_PASSWORD="${POSTGRES_PASSWORD}"
+            docker-compose build
+            docker-compose up -d postgres
+            docker-compose run --rm app alembic upgrade head
+            docker-compose up -d --wait --remove-orphans
+            docker image prune -f
+
+            echo "::STAGE:: verify https"
+            # Caddy 가 Let's Encrypt 인증서 받을 때까지 최대 60초 재시도. 실패면 배포도 실패로 처리.
+            curl -fsS --retry 12 --retry-delay 5 --retry-all-errors \
+              "https://${PUBLIC_DOMAIN}/openapi.json" -o /dev/null
+            echo "::STAGE:: done"

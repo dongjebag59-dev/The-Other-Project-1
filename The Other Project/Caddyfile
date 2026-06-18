@@ -1,0 +1,10 @@
+{$PUBLIC_DOMAIN} {
+	reverse_proxy app:8000
+
+	encode zstd gzip
+
+	log {
+		output stdout
+		format console
+	}
+}

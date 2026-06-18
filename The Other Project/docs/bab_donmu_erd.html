@@ -1,0 +1,175 @@
+
+<style>
+#erd svg { width: 100%; }
+#erd svg.erDiagram .row-rect-odd path,
+#erd svg.erDiagram .row-rect-odd rect,
+#erd svg.erDiagram .row-rect-even path,
+#erd svg.erDiagram .row-rect-even rect { stroke: none !important; }
+</style>
+<div id="erd" style="padding: 1rem 0"></div>
+<script type="module">
+import mermaid from 'https://esm.sh/mermaid@11/dist/mermaid.esm.min.mjs';
+const dark = matchMedia('(prefers-color-scheme: dark)').matches;
+await document.fonts.ready;
+mermaid.initialize({
+  startOnLoad: false,
+  theme: 'base',
+  fontFamily: '"Anthropic Sans", sans-serif',
+  themeVariables: {
+    darkMode: dark,
+    fontSize: '13px',
+    fontFamily: '"Anthropic Sans", sans-serif',
+    lineColor: dark ? '#9c9a92' : '#73726c',
+    textColor: dark ? '#c2c0b6' : '#3d3d3a',
+  },
+});
+const { svg } = await mermaid.render('erd-svg', `erDiagram
+  addresses {
+    int address_id PK
+    string road_address
+    string jibun_address
+    string zonecode
+    string sigungu
+    string bname
+    string detail_address
+    string sido
+    string building_name
+    bool is_apartment
+    float lat
+    float lng
+    string sigungu_code
+    timestamp created_at
+    timestamp updated_at
+  }
+  users {
+    int user_id PK
+    int address_id FK
+    string kakao_id
+    string name
+    string email
+    string password
+    string phone_number
+    string user_role
+    string cert_flag
+    string cert_reject_reason
+    timestamp created_at
+    timestamp updated_at
+  }
+  documents {
+    int document_id PK
+    int user_id FK
+    string document_type
+    string document_url
+    timestamp created_at
+    timestamp updated_at
+  }
+  phone_verifications {
+    int id PK
+    string phone_number
+    string code
+    timestamp expires_at
+    bool is_verified
+    timestamp created_at
+  }
+  seniors {
+    int senior_id PK
+    int guardian_id FK
+    int address_id FK
+    string name
+    string gender
+    date birth_date
+    string special_note
+    bool active_flag
+    string ai_summary
+    int max_people
+    string qr_code
+    timestamp created_at
+    timestamp updated_at
+  }
+  hostings {
+    int hosting_id PK
+    int senior_id FK
+    int address_id FK
+    string menu
+    timestamp hosting_at
+    timestamp hosting_end
+    int max_people
+    string hosting_status
+    timestamp created_at
+    timestamp updated_at
+  }
+  matching_info {
+    int matching_id PK
+    int hosting_id FK
+    int vt_id FK
+    int senior_id FK
+    string match_status
+    timestamp check_in_time
+    timestamp check_out_time
+    int actual_volunteer_time
+    timestamp created_at
+  }
+  reviews {
+    int review_id PK
+    int matching_id FK
+    int vt_id FK
+    string contents
+    timestamp created_at
+    timestamp updated_at
+  }
+  review_img {
+    int image_id PK
+    int review_id FK
+    string image_url
+    timestamp created_at
+  }
+  sms_logs {
+    int sms_id PK
+    int hosting_id FK
+    int receiver_id FK
+    bool is_send
+    string alarm_type
+    string contents
+    timestamp created_at
+  }
+
+  addresses ||--|| users : "주소"
+  addresses ||--|| seniors : "주소"
+  addresses ||--|| hostings : "주소"
+  users ||--o{ documents : "업로드"
+  users ||--o{ seniors : "보호자"
+  seniors |o--o{ hostings : "개설"
+  hostings ||--o{ matching_info : "신청"
+  users ||--o{ matching_info : "봉사자"
+  matching_info ||--o{ reviews : "작성"
+  users ||--o{ reviews : "봉사자"
+  reviews ||--o{ review_img : "이미지"
+  hostings ||--o{ sms_logs : "발송"
+  users ||--o{ sms_logs : "수신"
+`);
+document.getElementById('erd').innerHTML = svg;
+
+document.querySelectorAll('#erd svg.erDiagram .node').forEach(node => {
+  const firstPath = node.querySelector('path[d]');
+  if (!firstPath) return;
+  const d = firstPath.getAttribute('d');
+  const nums = d.match(/-?[\d.]+/g)?.map(Number);
+  if (!nums || nums.length < 8) return;
+  const xs = [nums[0], nums[2], nums[4], nums[6]];
+  const ys = [nums[1], nums[3], nums[5], nums[7]];
+  const x = Math.min(...xs), y = Math.min(...ys);
+  const w = Math.max(...xs) - x, h = Math.max(...ys) - y;
+  const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+  rect.setAttribute('x', x); rect.setAttribute('y', y);
+  rect.setAttribute('width', w); rect.setAttribute('height', h);
+  rect.setAttribute('rx', '8');
+  for (const a of ['fill', 'stroke', 'stroke-width', 'class', 'style']) {
+    if (firstPath.hasAttribute(a)) rect.setAttribute(a, firstPath.getAttribute(a));
+  }
+  firstPath.replaceWith(rect);
+});
+
+document.querySelectorAll('#erd svg.erDiagram .row-rect-odd path, #erd svg.erDiagram .row-rect-even path').forEach(p => {
+  p.setAttribute('stroke', 'none');
+});
+</script>

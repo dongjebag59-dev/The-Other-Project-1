@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>내 매칭 - 밥동무</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    .img-wrap { position: relative; }
+    .img-wrap img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; }
+    .img-delete-btn {
+      position: absolute; top: 4px; right: 4px;
+      background: rgba(0,0,0,0.5); color: #fff;
+      border: none; border-radius: 50%; width: 22px; height: 22px;
+      font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    }
+  </style>
+</head>
+<body>
+<div id="nav-placeholder"></div>
+
+  </div>
+
+  <main class="container">
+    <div class="page-header slide-up">
+      <h1>내 매칭</h1>
+      <p>예정된 매칭과 활동 이력을 확인하세요</p>
+    </div>
+
+    <div class="tabs slide-up stagger-1">
+      <button class="tab active" data-tab="scheduled">예정</button>
+      <button class="tab" data-tab="completed">완료</button>
+    </div>
+
+    <div id="match-list"></div>
+
+    <div id="empty-state" class="empty-state hidden">
+      <svg class="empty-state-icon" viewBox="0 0 80 80" fill="none"><circle cx="40" cy="40" r="36" fill="currentColor" opacity="0.06"/><path d="M24 44c0-8.8 7.2-16 16-16s16 7.2 16 16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/><path d="M20 44h40v2c0 6.6-5.4 12-12 12H32c-6.6 0-12-5.4-12-12v-2z" fill="currentColor" opacity="0.08"/></svg>
+      <p>아직 매칭 이력이 없어요</p>
+      <p class="text-sm mt-sm"><a href="/pages/hostings.html" class="link-primary">호스팅을 둘러보고</a> 첫 밥동무를 시작해보세요!</p>
+    </div>
+
+    <div id="pagination" class="pagination" style="display:none;"></div>
+  </main>
+
+  <!-- 후기 작성 모달 -->
+  <div class="modal-overlay" id="review-modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="review-modal-title">후기 작성</h3>
+        <button class="modal-close" id="review-modal-close" type="button">✕</button>
+      </div>
+      <form id="review-form">
+        <input type="hidden" id="review-match-id">
+        <div class="form-group">
+          <label class="form-label" for="review-content">후기 내용</label>
+          <textarea class="form-input textarea-review" id="review-content" rows="4"
+            placeholder="봉사 경험을 자유롭게 작성해주세요" required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">
+            사진 첨부
+            <span class="label-hint">(최대 5장)</span>
+          </label>
+          <div id="review-img-preview" class="img-preview-grid"></div>
+          <label class="btn btn-ghost btn-sm">
+            + 사진 추가
+            <input type="file" id="review-images" accept=".jpg,.jpeg,.png" multiple class="hidden">
+          </label>
+          <p class="doc-hint">jpg, png / 최대 5MB씩</p>
+        </div>
+        <div id="review-error" class="alert alert-error hidden"></div>
+        <button type="submit" class="btn btn-primary w-full">등록하기</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/modal.js"></script>
+  <script src="/js/base.js"></script>
+  <script src="/js/footer.js"></script>
+  <script type="module">
+    import { requireRoles } from '/js/authGuard.js';
+    import { escapeHtml } from '/js/hosting-shared.js';
+
+    const PAGE_SIZE = 10;
+    let currentTab = 'scheduled';
+    let currentPage = 1;
+    let selectedFiles = [];
+
+    // 날짜 포맷: "4월 15일 (화) · 점심"
+    function formatDate(datetimeStr) {
+      const d = new Date(datetimeStr);
+      const days = ['일', '월', '화', '수', '목', '금', '토'];
+      const hour = d.getHours();
+      const mealTime = hour < 15 ? '점심' : '저녁';
+      return `${d.getMonth() + 1}월 ${d.getDate()}일 (${days[d.getDay()]}) · ${mealTime}`;
+    }
+
+    // 봉사시간 포맷
+    function formatVolunteerTime(match) {
+      if (match.actual_volunteer_time !== null && match.actual_volunteer_time !== undefined) {
+        return `${(match.actual_volunteer_time / 60).toFixed(1)}시간`;
+      }
+      if (match.check_in_time && match.check_out_time) {
+        const diff = new Date(match.check_out_time) - new Date(match.check_in_time);
+        const hours = (diff / 1000 / 60 / 60).toFixed(1);
+        return `예상 ${hours}시간`;
+      }
+      return null;
+    }
+
+    // 매칭 카드 HTML 생성
+    function createMatchCard(match, isCompleted) {
+      const dateStr = formatDate(match.hosting_at);
+
+      if (isCompleted) {
+        const timeStr = formatVolunteerTime(match);
+        const meta = timeStr ? `${dateStr} · ${timeStr}` : dateStr;
+
+        // 완료 탭: 미방문이면 배지, 후기 있으면 후기 페이지로, 없으면 후기 작성 버튼
+        const seniorName = escapeHtml(match.senior_name);
+        const menu = escapeHtml(match.menu);
+        const titleEncoded = encodeURIComponent(`${match.senior_name} 어르신 · ${match.menu}`);
+
+        let action;
+        if (match.hosting_status === 'FAILED') {
+          action = `<span class="badge badge-cancelled">취소</span>`;
+        } else if (match.match_status === 'not_visited') {
+          action = `<span class="badge badge-not-visited">미방문</span>`;
+        } else if (match.has_review) {
+          action = `<a href="/pages/review-detail.html?review_id=${match.review_id}" class="btn btn-ghost btn-sm">후기 완료</a>`;
+        } else {
+          action = `<button class="btn btn-ghost btn-sm review-btn"
+               data-match-id="${match.matching_id}"
+               data-title="${titleEncoded}">후기 작성</button>`;
+        }
+
+        return `
+          <div class="card match-card mb-md">
+            <div class="card-body">
+              <div class="match-info">
+                <a href="/pages/hosting-detail.html?id=${match.hosting_id}&view=volunteer" class="link-inherit">
+                  <h3>${seniorName} 어르신 · ${menu}</h3>
+                </a>
+                <p class="match-meta">${meta}</p>
+              </div>
+              <div class="match-actions">${action}</div>
+            </div>
+          </div>`;
+      } else {
+        const address = match.senior_address ? escapeHtml(match.senior_address) : '';
+        const meta = address ? `${dateStr} · ${address}` : dateStr;
+        const seniorName = escapeHtml(match.senior_name);
+        const menu = escapeHtml(match.menu);
+        const isInProgress = new Date(match.hosting_at) <= new Date();
+        const badge = isInProgress
+          ? `<span class="badge badge-status-in-progress">진행중</span>`
+          : `<span class="badge badge-status-scheduled">예정</span>`;
+
+        return `
+          <div class="card match-card mb-md">
+            <div class="card-body">
+              <div class="match-info">
+                <a href="/pages/hosting-detail.html?id=${match.hosting_id}&view=volunteer" class="link-inherit">
+                  <h3>${seniorName} 어르신 · ${menu}</h3>
+                </a>
+                <p class="match-meta">${meta}</p>
+              </div>
+              <div class="match-actions">${badge}</div>
+            </div>
+          </div>`;
+      }
+    }
+
+    // 숫자 페이징 버튼 렌더링
+    function renderPagination(total) {
+      const container = document.querySelector('#pagination');
+      const totalPages = Math.ceil(total / PAGE_SIZE);
+
+      if (totalPages <= 1) {
+        container.style.display = 'none';
+        return;
+      }
+
+      container.innerHTML = '';
+      container.style.display = 'flex';
+
+      for (let i = 1; i <= totalPages; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        btn.className = `btn btn-sm ${i === currentPage ? 'btn-primary' : 'btn-ghost'}`;
+        const page = i;
+        btn.addEventListener('click', () => {
+          currentPage = page;
+          loadMatches(currentTab === 'completed');
+        });
+        container.appendChild(btn);
+      }
+    }
+
+    // 매칭 목록 로드
+    async function loadMatches(isCompleted) {
+      const list = document.querySelector('#match-list');
+      const empty = document.querySelector('#empty-state');
+      list.innerHTML = '';
+      empty.classList.add('hidden');
+      document.querySelector('#pagination').style.display = 'none';
+
+      try {
+        const data = await api(`/matches/my?is_completed=${isCompleted}&page=${currentPage}&size=${PAGE_SIZE}`);
+
+        if (!data || data.total === 0) {
+          empty.classList.remove('hidden');
+          return;
+        }
+
+        list.innerHTML = data.items.map(m => createMatchCard(m, isCompleted)).join('');
+        bindCardEvents();
+        renderPagination(data.total);
+      } catch (err) {
+        const errP = document.createElement('p');
+        errP.style.color = 'var(--error)';
+        errP.textContent = err.message;
+        list.appendChild(errP);
+      }
+    }
+
+    // 카드 버튼 이벤트 바인딩
+    function bindCardEvents() {
+      document.querySelectorAll('.review-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          openReviewModal(btn.dataset.matchId, decodeURIComponent(btn.dataset.title));
+        });
+      });
+    }
+
+    // 탭 전환
+    document.querySelectorAll('.tab[data-tab]').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab[data-tab]').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentTab = tab.dataset.tab;
+        currentPage = 1;
+        loadMatches(currentTab === 'completed');
+      });
+    });
+
+    // 후기 모달
+    function openReviewModal(matchId, title) {
+      document.querySelector('#review-match-id').value = matchId;
+      document.querySelector('#review-modal-title').textContent = title + ' 후기';
+      document.querySelector('#review-form').reset();
+      document.querySelector('#review-img-preview').innerHTML = '';
+      document.querySelector('#review-error').classList.add('hidden');
+      document.querySelector('#review-modal-overlay').classList.add('open');
+      selectedFiles = [];
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeReviewModal() {
+      document.querySelector('#review-modal-overlay').classList.remove('open');
+      selectedFiles = [];
+      document.body.style.overflow = '';
+    }
+
+    // 500자 초과 입력 시 shake 효과 (모바일 가상 키보드 대응)
+    document.querySelector('#review-content')?.addEventListener('input', (e) => {
+      const textarea = e.target;
+      if (textarea.value.length > 500) {
+        textarea.value = textarea.value.slice(0, 500);
+      }
+    });
+
+    function renderImagePreview() {
+      const preview = document.querySelector('#review-img-preview');
+      preview.innerHTML = '';
+      selectedFiles.forEach((file, index) => {
+        const wrap = document.createElement('div');
+        wrap.className = 'img-wrap';
+        const img = document.createElement('img');
+        img.src = URL.createObjectURL(file);
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'img-delete-btn';
+        btn.textContent = '✕';
+        btn.addEventListener('click', () => {
+          selectedFiles.splice(index, 1);
+          renderImagePreview();
+        });
+        wrap.appendChild(img);
+        wrap.appendChild(btn);
+        preview.appendChild(wrap);
+      });
+    }
+
+    document.querySelector('#review-images')?.addEventListener('change', (e) => {
+      const newFiles = [...e.target.files];
+      e.target.value = '';
+
+      const combined = [...selectedFiles, ...newFiles];
+      if (combined.length > 5) {
+        showResultModal('사진은 최대 5장까지 첨부할 수 있어요.', 'error');
+        return;
+      }
+
+      selectedFiles = combined;
+      renderImagePreview();
+    });
+
+    document.querySelector('#review-form')?.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorEl = document.querySelector('#review-error');
+      errorEl.classList.add('hidden');
+
+      const matchId = document.querySelector('#review-match-id').value;
+      const contents = document.querySelector('#review-content').value;
+      const files = selectedFiles;
+
+      const formData = new FormData();
+      formData.append('match_id', matchId);
+      formData.append('contents', contents);
+      for (const file of files) formData.append('images', file);
+
+      try {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch('/api/v1/reviews', {
+          method: 'POST',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.detail || '등록 실패');
+        }
+
+        closeReviewModal();
+        await loadMatches(true);
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+      }
+    });
+
+    document.querySelector('#review-modal-close')?.addEventListener('click', closeReviewModal);
+    document.querySelector('#review-modal-overlay')?.addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) closeReviewModal();
+    });
+
+    async function bootstrap() {
+      // authGuard.js - requireRoles 에서 로그인 여부 & 역할 확인까지 수행
+      const currentUser = await requireRoles(['volunteer']);
+      if (!currentUser) return;
+      // 초기 로드
+      loadMatches(false);
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>

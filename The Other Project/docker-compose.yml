@@ -1,0 +1,65 @@
+services:
+  app:
+    build: .
+    # 외부 노출은 Caddy 가 담당. 8000 은 호스트 localhost 에서 디버깅 용도로만 접근 가능.
+    ports:
+      - "127.0.0.1:8000:8000"
+    expose:
+      - "8000"
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://babdongmu:${POSTGRES_PASSWORD}@postgres:5432/babdongmu
+      # QR 체크인 URL 생성 base. 운영에선 deploy.yml 이 https 도메인으로 export.
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-http://localhost:8000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/openapi.json')\""]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: babdongmu
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: babdongmu
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U babdongmu"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN:-babdongmu.duckdns.org}
+    depends_on:
+      app:
+        condition: service_healthy
+    # Caddy admin API(2019) 로 프로세스 상태 체크. 인증서 발급 여부와 무관하게 프로세스 살아있는지만.
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:2019/config/"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  caddy_data:
+  caddy_config:

@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>호스팅 탐색 - 밥동무</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    /* hosting-match 페이지 고유 스타일 */
+    .match-page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .header-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 10px;
+    }
+
+    .header-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      background: #F8F5F1;
+      color: #6B5E53;
+      font-size: 13px;
+      font-weight: 600;
+    }
+
+    .result-summary {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      color: #6B5E53;
+      font-size: 14px;
+    }
+
+    .quick-panel {
+      background: #fff;
+      border: 1px solid #E8E0D8;
+      border-radius: 16px;
+      padding: 18px 20px;
+      margin-bottom: 24px;
+      color: #6B5E53;
+      box-shadow: 0 10px 30px rgba(44, 36, 32, 0.05);
+    }
+
+    .quick-panel h3 {
+      margin: 0 0 8px;
+      color: #2C2420;
+    }
+
+    .quick-panel p {
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    /* 탐색 페이지에서는 카드 액션이 시각적 표시일 뿐 클릭은 카드 전체로 처리 */
+    .hosting-card-actions .btn {
+      pointer-events: none;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 700;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .badge-open { background: #EDF5ED; color: #3A6B39; }
+    .badge-full { background: #FDF5E6; color: #8B6914; }
+    .badge-failed { background: #FDECEC; color: #B44646; }
+    .badge-progress { background: #EEF3FF; color: #4269B4; }
+    .badge-closed { background: #F0EBE6; color: #6B5E53; }
+
+    .empty-state {
+      padding: 56px 24px;
+      text-align: center;
+    }
+
+    .empty-state-icon {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 16px;
+      color: #D4763C;
+    }
+
+    @media (max-width: 768px) {
+      .result-summary {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .hosting-card-actions .btn {
+        width: 100%;
+      }
+
+      .hosting-name {
+        font-size: 17px;
+      }
+
+      .hosting-menu {
+        font-size: 20px;
+      }
+
+    }
+  </style>
+</head>
+<body>
+<div id="nav-placeholder"></div>
+
+  </div>
+
+  <main class="container">
+    <div class="page-header slide-up match-page-header">
+      <div>
+        <h1>호스팅 탐색</h1>
+        <p>지역과 시간, 메뉴를 살펴보고 나와 맞는 식사 동행 호스팅을 찾아보세요.</p>
+      </div>
+    </div>
+
+    <section class="quick-panel slide-up stagger-1">
+      <h3>어떻게 고르면 좋을까요?</h3>
+      <p>가까운 지역, 부담 없는 시간대, 함께 먹고 싶은 메뉴를 기준으로 찾아보세요. 카드를 누르면 상세 화면에서 일정과 주소를 확인하고 신청할 수 있어요.</p>
+    </section>
+
+    <div class="filter-bar slide-up stagger-2">
+      <select id="filter-sigungu" class="form-input">
+        <option value="">전체 시군구</option>
+      </select>
+
+      <select id="filter-sort" class="form-input">
+        <option value="nearest">가까운 지역순</option>
+        <option value="soonest">가까운 일정순</option>
+        <option value="latest">최근 등록순</option>
+      </select>
+
+      <select id="filter-status" class="form-input">
+        <option value="">전체 상태</option>
+        <option value="OPEN">신청가능</option>
+        <option value="FULL">모집완료</option>
+      </select>
+
+      <input id="filter-keyword" class="form-input" type="text" placeholder="메뉴 또는 지역 검색">
+    </div>
+
+    <div class="result-summary slide-up stagger-3">
+      <span id="result-count">0건</span>
+      <span>신청 전 상세 정보를 꼭 확인해주세요.</span>
+    </div>
+
+    <div id="hosting-list" class="grid grid-3"></div>
+
+    <div id="empty-state" class="empty-state hidden">
+      <svg class="empty-state-icon" viewBox="0 0 80 80" fill="none">
+        <circle cx="40" cy="40" r="36" fill="currentColor" opacity="0.06"/>
+        <path d="M24 44c0-8.8 7.2-16 16-16s16 7.2 16 16" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"/>
+        <path d="M20 44h40v2c0 6.6-5.4 12-12 12H32c-6.6 0-12-5.4-12-12v-2z" fill="currentColor" opacity="0.08"/>
+        <path d="M35 36c-.8-3 1-6 5-6s5.5 3 5 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.3"/>
+      </svg>
+      <p id="empty-title">지금 볼 수 있는 호스팅이 없어요</p>
+      <p id="empty-description" class="text-sm mt-sm">조금 뒤에 다시 확인하거나 필터를 바꿔보세요.</p>
+    </div>
+  </main>
+
+
+  <div id="footer-placeholder"></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/modal.js"></script>
+  <script type="module">
+    import { requireRoles } from '/js/authGuard.js';
+    import {
+      buildHostingCard,
+      formatHostingPeopleText,
+    } from '/js/hosting-shared.js';
+
+    const VOLUNTEER_HOSTINGS_API = '/hostings/public';
+    const MY_MATCHES_API = '/matches/my?is_completed=false&page=1';
+
+    let hostingItems = [];
+    let appliedHostingIdSet = new Set();
+    let volunteerSigunguCode = null;
+
+    /* ---------- 법정동 코드 기반 근접도 ---------- */
+
+    function getSigunguProximity(userCode, targetCode) {
+      if (!userCode || !targetCode) return 3;
+      const u = String(userCode);
+      const t = String(targetCode);
+      if (u === t) return 0;
+      if (u.substring(0, 2) === t.substring(0, 2)) return 1;
+      return 2;
+    }
+
+    function renderSigunguOptionsWithProximity(selectElement, items, userCode) {
+      if (!selectElement) return;
+      const previousValue = selectElement.value;
+
+      const sigunguMap = new Map();
+      items.forEach((hosting) => {
+        const sigungu = hosting.address?.sigungu;
+        const code = hosting.address?.sigungu_code;
+        if (sigungu && !sigunguMap.has(sigungu)) {
+          sigunguMap.set(sigungu, code ?? null);
+        }
+      });
+
+      selectElement.innerHTML = '<option value="">전체 시군구</option>';
+
+      const sorted = [...sigunguMap.entries()].sort((a, b) => {
+        const proxA = getSigunguProximity(userCode, a[1]);
+        const proxB = getSigunguProximity(userCode, b[1]);
+        if (proxA !== proxB) return proxA - proxB;
+        return a[0].localeCompare(b[0], 'ko');
+      });
+
+      sorted.forEach(([sigungu, code]) => {
+        const prox = getSigunguProximity(userCode, code);
+        let label = sigungu;
+        if (userCode) {
+          if (prox === 0) label += ' (내 지역구)';
+          else if (prox === 1) label += ' (같은 시도)';
+        }
+        selectElement.appendChild(new Option(label, sigungu));
+      });
+
+      const validValues = [...sigunguMap.keys()];
+      selectElement.value = validValues.includes(previousValue) ? previousValue : '';
+    }
+
+    /* ---------- 페이지 고유 헬퍼 ---------- */
+
+    function buildHostingTitle(hosting) {
+      const regionParts = [hosting?.address?.sigungu, hosting?.address?.bname].filter(Boolean);
+      return regionParts.length > 0 ? `${regionParts.join(' · ')} 호스팅` : '호스팅';
+    }
+
+    function goToHostingDetail(hostingId) {
+      window.location.href = `/pages/hosting-detail.html?id=${hostingId}&view=volunteer`;
+    }
+
+    function getHostingIdFromMatch(match) {
+      return Number(
+        match?.hosting_id
+        || match?.hosting?.hosting_id
+        || match?.hosting?.id
+        || 0
+      );
+    }
+
+    function isActiveAppliedMatch(match) {
+      const status = String(match?.match_status || '').toLowerCase();
+      return status === 'approved';
+    }
+
+    function normalizeArrayResponse(response) {
+      if (Array.isArray(response)) {
+        return response;
+      }
+
+      if (Array.isArray(response?.items)) {
+        return response.items;
+      }
+
+      if (Array.isArray(response?.results)) {
+        return response.results;
+      }
+
+      if (Array.isArray(response?.data)) {
+        return response.data;
+      }
+
+      if (Array.isArray(response?.matches)) {
+        return response.matches;
+      }
+
+      if (Array.isArray(response?.hostings)) {
+        return response.hostings;
+      }
+
+      return [];
+    }
+
+    async function loadMyAppliedHostingIds() {
+      const matchesResponse = await api(MY_MATCHES_API);
+      const matches = normalizeArrayResponse(matchesResponse);
+
+      appliedHostingIdSet = new Set(
+        matches
+          .filter(isActiveAppliedMatch)
+          .map(getHostingIdFromMatch)
+          .filter((hostingId) => hostingId > 0)
+      );
+    }
+
+    function isAppliedHosting(hosting) {
+      return appliedHostingIdSet.has(Number(hosting?.hosting_id));
+    }
+
+    /* ---------- 카드 빌더 (공통 빌더에 옵션 주입) ---------- */
+
+    function buildMatchCard(hosting) {
+      const titleText = buildHostingTitle(hosting);
+      const avatarText = (hosting.address?.sigungu || '밥').charAt(0);
+      const isApplied = isAppliedHosting(hosting);
+
+      return buildHostingCard(hosting, {
+        title: titleText,
+        avatarText,
+        ariaLabel: `${titleText} 상세 보기`,
+        helperText: isApplied
+          ? `내가 신청한 호스팅 · 모집 인원 ${formatHostingPeopleText(hosting)}`
+          : `모집 인원 ${formatHostingPeopleText(hosting)}`,
+        actionsHtml: isApplied
+          ? '<span class="btn btn-secondary">내 신청 내역 보기</span>'
+          : '<span class="btn btn-primary">상세 보기</span>',
+        extraBadgesHtml: isApplied
+          ? '<span class="badge badge-my-applied">내가 신청한 호스팅</span>'
+          : '',
+        onActivate: (h) => goToHostingDetail(h.hosting_id),
+      });
+    }
+
+    /* ---------- 정렬 / 렌더 ---------- */
+
+    function sortHostings(items) {
+      const selectedSort = document.querySelector('#filter-sort').value;
+      const cloned = [...items];
+
+      if (selectedSort === 'latest') {
+        cloned.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+        return cloned;
+      }
+
+      if (selectedSort === 'nearest') {
+        cloned.sort((a, b) => {
+          const proxA = getSigunguProximity(volunteerSigunguCode, a.address?.sigungu_code);
+          const proxB = getSigunguProximity(volunteerSigunguCode, b.address?.sigungu_code);
+          if (proxA !== proxB) return proxA - proxB;
+          return new Date(a.hosting_at) - new Date(b.hosting_at);
+        });
+        return cloned;
+      }
+
+      cloned.sort((a, b) => new Date(a.hosting_at) - new Date(b.hosting_at));
+      return cloned;
+    }
+
+    function renderHostings() {
+      const listElement = document.querySelector('#hosting-list');
+      const emptyStateElement = document.querySelector('#empty-state');
+      const emptyTitleElement = document.querySelector('#empty-title');
+      const emptyDescriptionElement = document.querySelector('#empty-description');
+      const resultCountElement = document.querySelector('#result-count');
+
+      const selectedSigungu = document.querySelector('#filter-sigungu').value;
+      const selectedStatus = document.querySelector('#filter-status').value;
+      const keyword = document.querySelector('#filter-keyword').value.trim().toLowerCase();
+
+      listElement.innerHTML = '';
+
+      const filtered = hostingItems.filter((hosting) => {
+        const matchesSigungu = !selectedSigungu || hosting.address?.sigungu === selectedSigungu;
+        const matchesStatus = !selectedStatus || hosting.hosting_status === selectedStatus;
+
+        const keywordTarget = [
+          hosting.menu,
+          hosting.address?.sigungu,
+          hosting.address?.bname,
+          hosting.address?.road_address,
+          hosting.address?.detail_address,
+          hosting.address?.building_name,
+        ]
+          .filter(Boolean)
+          .join(' ')
+          .toLowerCase();
+
+        const matchesKeyword = !keyword || keywordTarget.includes(keyword);
+
+        return matchesSigungu && matchesStatus && matchesKeyword;
+      });
+
+      const sorted = sortHostings(filtered);
+      resultCountElement.textContent = `${sorted.length}건`;
+
+      if (hostingItems.length === 0) {
+        emptyStateElement.classList.remove('hidden');
+        emptyTitleElement.textContent = '지금 볼 수 있는 호스팅이 없어요';
+        emptyDescriptionElement.textContent = '조금 뒤에 다시 확인해주세요.';
+        return;
+      }
+
+      if (sorted.length === 0) {
+        emptyStateElement.classList.remove('hidden');
+        emptyTitleElement.textContent = '조건에 맞는 호스팅이 없어요';
+        emptyDescriptionElement.textContent = '지역, 상태, 검색어를 바꿔보세요.';
+        return;
+      }
+
+      emptyStateElement.classList.add('hidden');
+      sorted.forEach((hosting) => {
+        listElement.appendChild(buildMatchCard(hosting));
+      });
+    }
+
+    async function loadHostings() {
+      const [hostingsResponse] = await Promise.all([
+        api(VOLUNTEER_HOSTINGS_API),
+        loadMyAppliedHostingIds(),
+      ]);
+
+      hostingItems = normalizeArrayResponse(hostingsResponse);
+      renderSigunguOptionsWithProximity(document.querySelector('#filter-sigungu'), hostingItems, volunteerSigunguCode);
+      renderHostings();
+    }
+
+    async function initializePage() {
+      try {
+        await loadHostings();
+      } catch (error) {
+        console.error(error);
+        await showResultModal(
+          error?.message || '호스팅 목록을 불러오지 못했어요.',
+          'error'
+        );
+      }
+    }
+
+    /* ---------- 이벤트 ---------- */
+
+    document.querySelector('#filter-sigungu')?.addEventListener('change', renderHostings);
+    document.querySelector('#filter-status')?.addEventListener('change', renderHostings);
+    document.querySelector('#filter-sort')?.addEventListener('change', renderHostings);
+    document.querySelector('#filter-keyword')?.addEventListener('input', renderHostings);
+
+
+    document.addEventListener('keydown', (event) => {
+      if (event.key !== 'Escape') {
+        return;
+      }
+
+      if (document.querySelector('#result-modal').classList.contains('open')) {
+        closeResultModal();
+      }
+    });
+
+    async function bootstrap() {
+      const currentUser = await requireRoles(['volunteer', 'admin']);
+      if (!currentUser) {
+        return;
+      }
+      volunteerSigunguCode = currentUser.address?.sigungu_code ?? null;
+      await initializePage();
+    }
+
+    bootstrap();
+  </script>
+  <script src="/js/base.js"></script>
+  <script src="/js/footer.js"></script>
+</body>
+</html>

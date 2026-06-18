@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>후기 - 밥동무</title>
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="/css/common.css">
+  <style>
+    .img-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-top:16px; }
+    .img-wrap { position:relative; }
+    .img-wrap img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; }
+    .img-delete-btn {
+      position:absolute; top:4px; right:4px;
+      background:rgba(0,0,0,0.5); color:#fff;
+      border:none; border-radius:50%; width:22px; height:22px;
+      font-size:12px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    }
+  </style>
+</head>
+<body>
+<div id="nav-placeholder"></div>
+
+  </div>
+
+  <main class="container" style="max-width:640px;">
+    <!-- Back Link -->
+    <div class="page-header slide-up">
+      <a href="/pages/my-matches.html" class="back-link">
+        <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 4l-6 6 6 6"/>
+        </svg>
+        내 매칭으로
+      </a>
+    </div>
+
+    <!-- 후기 카드 -->
+    <div class="review-card slide-up stagger-1">
+      <div class="review-header">
+        <span class="review-author">내 후기</span>
+        <span class="review-date" id="review-date"></span>
+      </div>
+      <p class="review-message" id="review-contents" style="white-space:pre-wrap; word-break:break-word;"></p>
+      <div class="img-grid" id="review-images"></div>
+    </div>
+
+    <!-- 수정/삭제 버튼 -->
+    <div class="slide-up stagger-2" style="display:flex; gap:8px; margin-top:16px;">
+      <button class="btn btn-ghost btn-sm" id="edit-btn">수정</button>
+      <button class="btn btn-ghost btn-sm" id="delete-btn" style="color:var(--error);">삭제</button>
+    </div>
+  </main>
+
+  <!-- 수정 모달 -->
+  <div class="modal-overlay" id="edit-modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>후기 수정</h3>
+        <button class="modal-close" id="edit-modal-close" type="button">✕</button>
+      </div>
+      <form id="edit-form">
+        <div class="form-group">
+          <label class="form-label" for="edit-content">후기 내용</label>
+          <textarea class="form-input" id="edit-content" rows="4" maxlength="500"
+            placeholder="봉사 경험을 자유롭게 작성해주세요" required
+            style="resize:vertical; min-height:100px;"></textarea>
+        </div>
+
+        <!-- 기존 이미지 (X버튼으로 삭제) -->
+        <div class="form-group">
+          <label class="form-label">현재 이미지</label>
+          <div class="img-grid" id="edit-current-images"></div>
+        </div>
+
+        <!-- 이미지 추가 -->
+        <div class="form-group" id="add-image-section">
+          <label class="btn btn-ghost btn-sm" style="display:inline-flex; align-items:center; gap:4px; cursor:pointer;">
+            + 사진 추가
+            <input type="file" id="add-image-input" accept=".jpg,.jpeg,.png" style="display:none;">
+          </label>
+          <p class="doc-hint">jpg, png / 최대 5MB씩 / 최대 5장</p>
+        </div>
+
+        <div id="edit-error" class="alert alert-error hidden"></div>
+        <button type="submit" class="btn btn-primary w-full">저장하기</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="/js/api.js"></script>
+  <script src="/js/modal.js"></script>
+  <script src="/js/base.js"></script>
+  <script src="/js/footer.js"></script>
+  <script type="module">
+    import { requireRoles } from '/js/authGuard.js';
+    import { escapeHtml } from '/js/hosting-shared.js';
+
+    const params = new URLSearchParams(window.location.search);
+    const reviewId = params.get('review_id');
+
+
+    let currentReview = null;
+
+    async function loadReview() {
+      try {
+        currentReview = await api(`/reviews/${reviewId}`);
+
+        document.querySelector('#review-contents').innerHTML = escapeHtml(currentReview.contents);
+
+        const date = new Date(currentReview.created_at);
+        document.querySelector('#review-date').textContent =
+          `${date.getFullYear()}.${String(date.getMonth()+1).padStart(2,'0')}.${String(date.getDate()).padStart(2,'0')}`;
+
+        renderImages(currentReview.images);
+      } catch (err) {
+        showResultModal(err.message, 'error');
+        window.location.href = '/pages/my-matches.html';
+      }
+    }
+
+    // 후기 상세 이미지 렌더링
+    function renderImages(images) {
+      const container = document.querySelector('#review-images');
+      container.innerHTML = '';
+      if (images && images.length > 0) {
+        images.forEach(img => {
+          const wrap = document.createElement('div');
+          wrap.className = 'img-wrap';
+          const image = document.createElement('img');
+          image.src = img.image_url;
+          image.alt = '후기 이미지';
+          wrap.appendChild(image);
+          container.appendChild(wrap);
+        });
+      }
+    }
+
+    // 수정 모달 이미지 렌더링 (X버튼 포함)
+    function renderEditImages(images) {
+      const container = document.querySelector('#edit-current-images');
+      container.innerHTML = '';
+      if (images && images.length > 0) {
+        images.forEach(img => {
+          const wrap = document.createElement('div');
+          wrap.className = 'img-wrap';
+          const image = document.createElement('img');
+          image.src = img.image_url;
+          image.alt = '후기 이미지';
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'img-delete-btn';
+          btn.dataset.imageId = img.image_id;
+          btn.textContent = '✕';
+          btn.addEventListener('click', async () => {
+            try {
+              const updated = await api(`/reviews/${reviewId}/images/${img.image_id}`, { method: 'DELETE' });
+              currentReview = updated;
+              renderEditImages(updated.images);
+              document.querySelector('#add-image-section').style.display =
+                updated.images.length < 5 ? '' : 'none';
+            } catch (err) {
+              showResultModal(err.message, 'error');
+            }
+          });
+          wrap.appendChild(image);
+          wrap.appendChild(btn);
+          container.appendChild(wrap);
+        });
+      }
+
+      // 5장이면 추가 버튼 숨김
+      document.querySelector('#add-image-section').style.display =
+        images && images.length >= 5 ? 'none' : '';
+    }
+
+    // 수정 모달 열기
+    document.querySelector('#edit-btn').addEventListener('click', async () => {
+      document.querySelector('#edit-content').value = currentReview.contents;
+      document.querySelector('#edit-error').classList.add('hidden');
+      renderEditImages(currentReview.images);
+      document.querySelector('#edit-modal-overlay').classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+
+    // 이미지 추가
+    document.querySelector('#add-image-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const formData = new FormData();
+      formData.append('image', file);
+
+      try {
+        const token = localStorage.getItem('access_token');
+        const res = await fetch(`/api/v1/reviews/${reviewId}/images`, {
+          method: 'POST',
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+          body: formData,
+        });
+
+        if (!res.ok) {
+          const data = await res.json();
+          throw new Error(data.detail || '이미지 업로드 실패');
+        }
+
+        const updated = await res.json();
+        currentReview = updated;
+        renderEditImages(updated.images);
+      } catch (err) {
+        showResultModal(err.message, 'error');
+      }
+
+      e.target.value = '';
+    });
+
+    // 수정 제출 (텍스트만)
+    document.querySelector('#edit-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const errorEl = document.querySelector('#edit-error');
+      errorEl.classList.add('hidden');
+      const contents = document.querySelector('#edit-content').value;
+
+      try {
+        await api(`/reviews/${reviewId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ contents }),
+        });
+        document.querySelector('#edit-modal-overlay').classList.remove('open');
+        document.body.style.overflow = '';
+        await loadReview();
+      } catch (err) {
+        errorEl.textContent = err.message;
+        errorEl.classList.remove('hidden');
+      }
+    });
+
+    document.querySelector('#edit-modal-close').addEventListener('click', () => {
+      document.querySelector('#edit-modal-overlay').classList.remove('open');
+      document.body.style.overflow = '';
+      loadReview();
+    });
+
+    document.querySelector('#edit-modal-overlay').addEventListener('click', (e) => {
+      if (e.target === e.currentTarget) {
+        document.querySelector('#edit-modal-overlay').classList.remove('open');
+        document.body.style.overflow = '';
+        loadReview();
+      }
+    });
+
+    // 후기 삭제
+    document.querySelector('#delete-btn').addEventListener('click', () => {
+      openConfirmModal({
+        title: '후기 삭제',
+        message: '후기를 삭제할까요? 삭제 후 복구할 수 없습니다.',
+        confirmText: '삭제',
+        cancelText: '취소',
+        onConfirm: async () => {
+          try {
+            await api(`/reviews/${reviewId}`, { method: 'DELETE' });
+            window.location.href = '/pages/my-matches.html';
+          } catch (err) {
+            await showResultModal(err.message, 'error');
+          }
+        },
+      });
+    });
+
+    async function bootstrap() {
+      const currentUser = await requireRoles(['volunteer']);
+      if (!currentUser) return;
+      if (!reviewId) {
+        window.location.href = '/pages/my-matches.html';
+        return;
+      }
+      loadReview();
+    }
+
+    bootstrap();
+  </script>
+</body>
+</html>

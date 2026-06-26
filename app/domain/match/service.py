@@ -48,11 +48,11 @@ async def create_match(db: AsyncSession, hosting_id: int, vt_id: int) -> Matchin
     if not hosting:
         raise HTTPException(status_code=404, detail="존재하지 않는 호스팅입니다.")
 
-    # 2. 호스팅 상태 확인
-    if hosting.hosting_status != HostingStatus.OPEN:
+    # 2. 호스팅 상태 확인 (OPEN 또는 FULL만 신청 가능)
+    if hosting.hosting_status not in (HostingStatus.OPEN, HostingStatus.FULL):
         raise HTTPException(status_code=400, detail="신청 불가능한 호스팅입니다.")
 
-    # 3. 같은 날짜 중복 신청 확인 (같은 호스팅 포함)
+    # 3. 같은 날짜 중복 신청 확인 (같은 호스팅 포함, WAITING도 포함)
     result = await db.execute(
         select(MatchingInfo)
         .join(Hosting, MatchingInfo.hosting_id == Hosting.hosting_id)
@@ -65,25 +65,36 @@ async def create_match(db: AsyncSession, hosting_id: int, vt_id: int) -> Matchin
     if result.scalar_one_or_none():
         raise HTTPException(status_code=409, detail="같은 날짜에 이미 신청한 호스팅이 있습니다.")
 
-    # 4. 선착순 매칭 생성 (즉시 승인)
-    match = MatchingInfo(
-        hosting_id=hosting_id,
-        vt_id=vt_id,
-        senior_id=hosting.senior_id,
-        match_status=MatchStatus.APPROVED,
-    )
-    db.add(match)
-    await db.flush()
-
-    # 5. 승인 인원이 max_people에 도달하면 모집완료로 변경
-    count_result = await db.execute(
-        select(func.count()).where(
-            MatchingInfo.hosting_id == hosting_id,
-            MatchingInfo.match_status == MatchStatus.APPROVED,
+    if hosting.hosting_status == HostingStatus.OPEN:
+        # 4a. 즉시 승인
+        match = MatchingInfo(
+            hosting_id=hosting_id,
+            vt_id=vt_id,
+            senior_id=hosting.senior_id,
+            match_status=MatchStatus.APPROVED,
         )
-    )
-    if count_result.scalar() >= hosting.max_people:
-        hosting.hosting_status = HostingStatus.FULL
+        db.add(match)
+        await db.flush()
+
+        # 5. 승인 인원이 max_people에 도달하면 모집완료로 변경
+        count_result = await db.execute(
+            select(func.count()).where(
+                MatchingInfo.hosting_id == hosting_id,
+                MatchingInfo.match_status == MatchStatus.APPROVED,
+            )
+        )
+        if count_result.scalar() >= hosting.max_people:
+            hosting.hosting_status = HostingStatus.FULL
+    else:
+        # 4b. 정원 초과 — 대기자 등록
+        match = MatchingInfo(
+            hosting_id=hosting_id,
+            vt_id=vt_id,
+            senior_id=hosting.senior_id,
+            match_status=MatchStatus.WAITING,
+        )
+        db.add(match)
+        await db.flush()
 
     await db.commit()
     await db.refresh(match)
@@ -203,16 +214,32 @@ async def cancel_match(db: AsyncSession, matching_id: int, vt_id: int) -> Matchi
     match.match_status = MatchStatus.CANCELLED
     await db.flush()
 
-    # 취소 후 승인 인원이 줄었으면 호스팅 다시 신청가능으로 복구
     if hosting and hosting.hosting_status == HostingStatus.FULL:
-        count_result = await db.execute(
-            select(func.count()).where(
+        # 대기자가 있으면 첫 번째 대기자를 승인으로 승격
+        waiting_result = await db.execute(
+            select(MatchingInfo)
+            .where(
                 MatchingInfo.hosting_id == match.hosting_id,
-                MatchingInfo.match_status == MatchStatus.APPROVED,
+                MatchingInfo.match_status == MatchStatus.WAITING,
             )
+            .order_by(MatchingInfo.created_at.asc())
+            .limit(1)
+            .with_for_update()
         )
-        if count_result.scalar() < hosting.max_people:
-            hosting.hosting_status = HostingStatus.OPEN
+        next_waiting = waiting_result.scalar_one_or_none()
+        if next_waiting:
+            next_waiting.match_status = MatchStatus.APPROVED
+            # 슬롯이 채워졌으므로 호스팅은 FULL 유지
+        else:
+            # 대기자 없음 — 슬롯 복구
+            count_result = await db.execute(
+                select(func.count()).where(
+                    MatchingInfo.hosting_id == match.hosting_id,
+                    MatchingInfo.match_status == MatchStatus.APPROVED,
+                )
+            )
+            if count_result.scalar() < hosting.max_people:
+                hosting.hosting_status = HostingStatus.OPEN
 
     await db.commit()
     await db.refresh(match)

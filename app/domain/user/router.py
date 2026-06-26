@@ -121,7 +121,7 @@ async def register(body: UserRegisterRequest, db: AsyncSession = Depends(get_db)
 @router.post("/login", response_model=TokenResponse)
 async def login(body: UserLoginRequest, db: AsyncSession = Depends(get_db)):
     """로그인"""
-    if is_rate_limited(f"login:{body.email}", max_calls=10, window_seconds=300):
+    if await is_rate_limited(f"login:{body.email}", max_calls=10, window_seconds=300):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="로그인 시도가 너무 많습니다. 5분 후 다시 시도해주세요.",
@@ -408,7 +408,10 @@ async def kakao_callback(
     user = await get_user_by_kakao_id(kakao_id, db)
     if user is not None:
         access_token = create_access_token({"sub": str(user.user_id)})
-        response = RedirectResponse(url=f"{frontend_base}/pages/login.html#kakao_token={access_token}")
+        refresh_token = create_refresh_token({"sub": str(user.user_id)})
+        response = RedirectResponse(
+            url=f"{frontend_base}/pages/login.html#kakao_token={access_token}&kakao_refresh_token={refresh_token}"
+        )
         response.delete_cookie("oauth_state")
         return response
 
@@ -481,7 +484,7 @@ async def kakao_setup(body: KakaoSetupRequest, db: AsyncSession = Depends(get_db
 @router.post("/password/reset/request", response_model=PasswordResetRequestResponse)
 async def password_reset_request(body: PasswordResetRequest, db: AsyncSession = Depends(get_db)):
     """비밀번호 찾기 1단계: 이메일로 계정 확인 후 등록된 번호로 SMS 발송"""
-    if is_rate_limited(f"pw_reset:{body.email}", max_calls=3, window_seconds=300):
+    if await is_rate_limited(f"pw_reset:{body.email}", max_calls=3, window_seconds=300):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="요청이 너무 많습니다. 5분 후 다시 시도해주세요.",
@@ -553,7 +556,7 @@ async def password_reset(
 @router.post("/phone/send", status_code=status.HTTP_204_NO_CONTENT)
 async def send_verification(body: SmsSendRequest, db: AsyncSession = Depends(get_db)):
     """SMS 인증 코드 발송"""
-    if is_rate_limited(f"sms:{body.phone_number}", max_calls=3, window_seconds=60):
+    if await is_rate_limited(f"sms:{body.phone_number}", max_calls=3, window_seconds=60):
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail="SMS 발송 횟수를 초과했습니다. 1분 후 다시 시도해주세요.",

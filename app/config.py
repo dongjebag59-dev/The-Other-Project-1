@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     DB_POOL_SIZE: int = 5
     DB_MAX_OVERFLOW: int = 10
 
+    # Redis (Rate Limiter 용, 빈 문자열이면 in-memory 사용)
+    REDIS_URL: str = ""
+
     class Config:
         env_file = ".env"
         extra = "ignore"

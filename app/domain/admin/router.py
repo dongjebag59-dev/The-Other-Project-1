@@ -268,9 +268,37 @@ async def list_completed_matches(
                 int((h.hosting_end - h.hosting_at).total_seconds() // 60)
                 if h.hosting_end else None
             ),
+            "auto_minutes": (
+                int((m.check_out_time - m.check_in_time).total_seconds() // 60)
+                if m.check_in_time and m.check_out_time else None
+            ),
         }
         for m, u, h, s in rows
     ]
+
+
+@router.patch("/matches/{matching_id}/volunteer-time/auto", status_code=status.HTTP_200_OK)
+async def auto_grant_volunteer_time(
+    matching_id: int,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_admin),
+) -> dict:
+    """체크인~체크아웃 실제 경과 시간으로 봉사시간을 자동 부여합니다."""
+    result = await db.execute(select(MatchingInfo).where(MatchingInfo.matching_id == matching_id))
+    match = result.scalar_one_or_none()
+    if match is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="매칭을 찾을 수 없습니다.")
+    if not match.check_in_time or not match.check_out_time:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="체크인/체크아웃 기록이 없어 자동 계산이 불가능합니다.",
+        )
+    check_in = match.check_in_time if match.check_in_time.tzinfo else match.check_in_time.replace(tzinfo=timezone.utc)
+    check_out = match.check_out_time if match.check_out_time.tzinfo else match.check_out_time.replace(tzinfo=timezone.utc)
+    auto_minutes = int((check_out - check_in).total_seconds() // 60)
+    match.actual_volunteer_time = auto_minutes
+    await db.commit()
+    return {"matching_id": matching_id, "actual_volunteer_time": auto_minutes, "auto": True}
 
 
 # ── 통계 페이지 API ───────────────────────────────────────────────────────────

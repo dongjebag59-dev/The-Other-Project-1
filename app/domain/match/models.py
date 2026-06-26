@@ -13,6 +13,7 @@ class MatchStatus(enum.Enum):
     APPROVED = "approved"
     CANCELLED = "cancelled"
     NOT_VISITED = "not_visited"
+    WAITING = "waiting"  # 대기자 (정원 초과 시)
 
 
 class MatchingInfo(Base):

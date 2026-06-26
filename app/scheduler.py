@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+from datetime import datetime, timezone
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from sqlalchemy import select
@@ -83,6 +84,7 @@ def create_scheduler() -> AsyncIOScheduler:
         seconds=settings.SCHEDULER_INTERVAL_SECONDS,
         id="hosting_status",
         replace_existing=True,
+        next_run_time=datetime.now(timezone.utc),
     )
 
     scheduler.add_job(

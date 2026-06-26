@@ -1,6 +1,7 @@
 """후기 비즈니스 로직."""
 
 import logging
+from datetime import datetime, timezone
 
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -137,6 +138,7 @@ async def update_review(
     """후기를 수정합니다."""
     review = await _get_review_or_raise(db, review_id, vt_id)
     review.contents = contents
+    review.updated_at = datetime.now(timezone.utc)
     await db.commit()
     await db.refresh(review)
 

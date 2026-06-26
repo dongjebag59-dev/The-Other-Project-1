@@ -67,5 +67,11 @@ async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONR
     return JSONResponse(status_code=500, content={"detail": "서버 오류가 발생했습니다."})
 
 
+@app.get("/health", tags=["health"])
+async def health_check() -> dict:
+    """Docker/ALB 헬스체크용 엔드포인트."""
+    return {"status": "ok"}
+
+
 app.include_router(api_router, prefix="/api/v1")
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")

@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.core.rate_limit import is_rate_limited
-from app.core.security import create_access_token, decode_access_token
+from app.core.security import create_access_token, create_refresh_token, decode_access_token
 from app.database import get_db
 from app.domain.match.schemas import VolunteerStatsResponse
 from app.domain.match.service import get_volunteer_stats
@@ -30,6 +30,7 @@ from app.domain.user.schemas import (
     PasswordResetRequestResponse,
     PasswordResetVerifyRequest,
     PasswordResetVerifyResponse,
+    RefreshTokenRequest,
     RegisterResponse,
     SmsSendRequest,
     SmsVerifyRequest,
@@ -53,6 +54,7 @@ from app.domain.user.service import (
     get_user_by_email,
     get_user_by_kakao_id,
     get_user_by_phone_number,
+    get_user_with_address,
     is_phone_verified,
     reset_password,
     send_phone_verification,
@@ -112,7 +114,8 @@ async def register(body: UserRegisterRequest, db: AsyncSession = Depends(get_db)
     )
     await delete_phone_verifications(body.phone_number, db)
     access_token = create_access_token({"sub": str(user.user_id)})
-    return RegisterResponse(user=user, access_token=access_token)
+    refresh_token = create_refresh_token({"sub": str(user.user_id)})
+    return RegisterResponse(user=user, access_token=access_token, refresh_token=refresh_token)
 
 
 @router.post("/login", response_model=TokenResponse)
@@ -132,7 +135,31 @@ async def login(body: UserLoginRequest, db: AsyncSession = Depends(get_db)):
         )
 
     access_token = create_access_token({"sub": str(user.user_id)})
-    return TokenResponse(access_token=access_token)
+    refresh_token = create_refresh_token({"sub": str(user.user_id)})
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+
+@router.post("/token/refresh", response_model=TokenResponse)
+async def refresh_access_token(body: RefreshTokenRequest, db: AsyncSession = Depends(get_db)):
+    """리프레시 토큰으로 액세스 토큰을 재발급합니다."""
+    invalid = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="유효하지 않은 리프레시 토큰입니다.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    payload = decode_access_token(body.refresh_token)
+    if payload is None or payload.get("type") != "refresh":
+        raise invalid
+    try:
+        user_id = int(payload.get("sub"))
+    except (TypeError, ValueError):
+        raise invalid
+    user = await get_user_with_address(user_id, db)
+    if user is None:
+        raise invalid
+    access_token = create_access_token({"sub": str(user.user_id)})
+    new_refresh_token = create_refresh_token({"sub": str(user.user_id)})
+    return TokenResponse(access_token=access_token, refresh_token=new_refresh_token)
 
 
 @router.get("/me", response_model=UserResponse)
@@ -446,7 +473,8 @@ async def kakao_setup(body: KakaoSetupRequest, db: AsyncSession = Depends(get_db
     )
     await delete_phone_verifications(body.phone_number, db)
     access_token = create_access_token({"sub": str(user.user_id)})
-    return RegisterResponse(user=user, access_token=access_token)
+    refresh_token = create_refresh_token({"sub": str(user.user_id)})
+    return RegisterResponse(user=user, access_token=access_token, refresh_token=refresh_token)
 
 
 # ── 비밀번호 찾기 ───────────────────

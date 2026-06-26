@@ -28,8 +28,9 @@ env/
 
 # 루트 레벨 Django 프로젝트 파일
 config/
-main.py
+/main.py
 manage.py
+!/app/main.py
 
 # 하위 프로젝트 (각자 별도 git 저장소로 관리)
 MY Hackathon Project/

@@ -21,6 +21,7 @@ from app.domain.senior.service import (
     get_senior_by_id,
     get_senior_id_by_qr,
     list_seniors_by_guardian,
+    regenerate_qr,
     update_senior,
 )
 from app.domain.user.dependency import require_guardian, require_volunteer
@@ -148,6 +149,25 @@ async def activate_senior_endpoint(
         senior_id=senior_id,
     )
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.post(
+    "/{senior_id}/qr/regenerate",
+    response_model=SeniorResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def regenerate_qr_endpoint(
+    senior_id: int,
+    session: AsyncSession = Depends(get_db),
+    current_guardian=Depends(require_guardian),
+) -> SeniorResponse:
+    """어르신의 QR 코드를 새 UUID로 재발급합니다."""
+
+    return await regenerate_qr(
+        session=session,
+        guardian_id=current_guardian.user_id,
+        senior_id=senior_id,
+    )
 
 
 @router.get(

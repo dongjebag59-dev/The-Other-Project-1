@@ -2,19 +2,24 @@
 
 import asyncio
 import logging
+from datetime import date as date_type
 from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+
 from app.domain.common.models import Address
 from app.domain.hosting.models import AlarmType, Hosting, HostingStatus
 from app.domain.hosting.schemas import (
     HostingCreateRequest,
+    HostingListResponse,
     HostingResponse,
     HostingSeniorResponse,
+    HostingUpdateRequest,
 )
 from app.domain.match.models import MatchingInfo, MatchStatus
 from app.domain.senior.models import Senior
@@ -598,38 +603,102 @@ async def cancel_hosting(
     )
 
 
+async def update_hosting(
+    session: AsyncSession,
+    guardian_id: int,
+    hosting_id: int,
+    request: HostingUpdateRequest,
+) -> HostingResponse:
+    """호스팅 정보를 수정합니다 (OPEN/FULL 상태에서만 허용)."""
+
+    hosting = await get_guardian_hosting_by_id(
+        session=session,
+        guardian_id=guardian_id,
+        hosting_id=hosting_id,
+    )
+
+    if hosting.hosting_status not in {HostingStatus.OPEN, HostingStatus.FULL}:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="모집 중 또는 모집완료 상태의 호스팅만 수정할 수 있습니다.",
+        )
+
+    if request.menu is not None:
+        hosting.menu = request.menu
+    if request.max_people is not None:
+        current_people = await get_current_people_count(session, hosting_id)
+        if request.max_people < current_people:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"현재 승인된 인원({current_people}명)보다 적은 인원으로 변경할 수 없습니다.",
+            )
+        hosting.max_people = request.max_people
+
+    await session.commit()
+
+    hosting = await get_guardian_hosting_by_id(session, guardian_id, hosting_id)
+    current_people = await get_current_people_count(session, hosting.hosting_id)
+    senior = await get_senior_with_address_by_id(session, hosting.senior_id)
+
+    return build_hosting_response(hosting=hosting, current_people=current_people, senior=senior)
+
+
 async def list_hostings_for_volunteer(
     session: AsyncSession,
-) -> list[HostingResponse]:
-    """봉사자가 탐색 가능한 공개 호스팅 목록을 조회합니다."""
+    page: int = 1,
+    size: int = 20,
+    sido: str | None = None,
+    sigungu: str | None = None,
+    hosting_date: date_type | None = None,
+) -> HostingListResponse:
+    """봉사자가 탐색 가능한 공개 호스팅 목록을 페이지네이션/필터링과 함께 조회합니다."""
 
-    visible_statuses = (
-        HostingStatus.OPEN,
-        HostingStatus.FULL,
+    visible_statuses = (HostingStatus.OPEN, HostingStatus.FULL)
+    KST = ZoneInfo("Asia/Seoul")
+
+    base_stmt = (
+        select(Hosting)
+        .join(Address, Address.address_id == Hosting.address_id)
+        .where(Hosting.hosting_status.in_(visible_statuses))
     )
 
-    stmt = (
-        select(Hosting)
-        .where(Hosting.hosting_status.in_(visible_statuses))
+    if sido:
+        base_stmt = base_stmt.where(Address.sido == sido)
+    if sigungu:
+        base_stmt = base_stmt.where(Address.sigungu == sigungu)
+    if hosting_date:
+        start_kst = datetime(hosting_date.year, hosting_date.month, hosting_date.day, 0, 0, 0, tzinfo=KST)
+        end_kst = datetime(hosting_date.year, hosting_date.month, hosting_date.day, 23, 59, 59, tzinfo=KST)
+        base_stmt = base_stmt.where(
+            Hosting.hosting_at >= start_kst.astimezone(timezone.utc),
+            Hosting.hosting_at <= end_kst.astimezone(timezone.utc),
+        )
+
+    total_result = await session.execute(select(func.count()).select_from(base_stmt.subquery()))
+    total = total_result.scalar_one()
+
+    paged_stmt = (
+        base_stmt
         .options(selectinload(Hosting.address))
         .order_by(Hosting.hosting_at.asc(), Hosting.created_at.desc())
+        .offset((page - 1) * size)
+        .limit(size)
     )
 
-    result = await session.execute(stmt)
+    result = await session.execute(paged_stmt)
     hostings = result.scalars().all()
     hosting_ids = [hosting.hosting_id for hosting in hostings]
-    current_people_map = await get_current_people_count_map(
-        session=session,
-        hosting_ids=hosting_ids,
-    )
+    current_people_map = await get_current_people_count_map(session=session, hosting_ids=hosting_ids)
 
-    return [
+    items = [
         build_hosting_response(
             hosting=hosting,
             current_people=current_people_map.get(hosting.hosting_id, 0),
         )
         for hosting in hostings
     ]
+
+    return HostingListResponse(items=items, total=total, page=page, size=size)
 
 
 async def get_public_hosting_detail(

@@ -490,6 +490,27 @@ async def delete_senior(
     await session.commit()
 
 
+async def regenerate_qr(
+    session: AsyncSession,
+    guardian_id: int,
+    senior_id: int,
+) -> SeniorResponse:
+    """어르신의 QR 코드를 새 UUID로 재발급합니다."""
+
+    senior = await get_guardian_senior_by_id(
+        session=session,
+        guardian_id=guardian_id,
+        senior_id=senior_id,
+    )
+
+    senior.qr_code = str(uuid.uuid4())
+    await session.commit()
+
+    senior = await _fetch_senior_with_address(session, senior_id)
+    hosting_counts = await get_hosting_counts_by_senior(session, senior.senior_id)
+    return build_senior_response(senior=senior, hosting_counts=hosting_counts)
+
+
 async def get_senior_id_by_qr(
     session: AsyncSession,
     qr_uuid: str,

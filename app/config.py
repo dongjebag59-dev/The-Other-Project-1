@@ -45,6 +45,19 @@ class Settings(BaseSettings):
     SCHEDULER_INTERVAL_SECONDS: int = 300
     CLEANUP_SCHEDULER_INTERVAL_SECONDS: int = 86400  # 하루 1번(24시간 주기)
 
+    # Refresh Token
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+
+    # CORS (쉼표 구분 origin 목록)
+    CORS_ORIGINS: str = "http://localhost:8000,http://localhost:3000"
+
+    # Sentry (빈 문자열이면 비활성화)
+    SENTRY_DSN: str = ""
+
+    # DB 커넥션 풀 (PostgreSQL 배포용)
+    DB_POOL_SIZE: int = 5
+    DB_MAX_OVERFLOW: int = 10
+
     class Config:
         env_file = ".env"
         extra = "ignore"

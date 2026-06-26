@@ -17,6 +17,16 @@ def _normalize_phone(v: str) -> str:
     return digits
 
 
+def _validate_password_complexity(v: str) -> str:
+    if len(v) < 8:
+        raise ValueError("비밀번호는 8자 이상이어야 합니다.")
+    if not re.search(r'\d', v):
+        raise ValueError("비밀번호에 숫자가 포함되어야 합니다.")
+    if not re.search(r'[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>/?]', v):
+        raise ValueError("비밀번호에 특수문자가 포함되어야 합니다.")
+    return v
+
+
 # (요청: 클라이언트 -body(데이터)-> 서버)
 # ── 유저 요청 ──────────────
 
@@ -38,13 +48,10 @@ class UserRegisterRequest(BaseModel):
     def normalize_phone(cls, v):
         return _normalize_phone(v)
 
-    @field_validator("password")  # 특정 필드(비번) 하나
-    # userregisterrequest 객체가 없는 상태라서 클래스(cls) 받음
+    @field_validator("password")
     @classmethod
-    def password_min_length(cls, v):  # v: password 입력값
-        if len(v) < 8:
-            raise ValueError("비밀번호는 8자 이상이어야 합니다.")
-        return v
+    def validate_password(cls, v):
+        return _validate_password_complexity(v)
 
     @model_validator(mode="after")  # 모델 전체(비번 - 비번확인 비교)
     # after: 모든 필드 처리 다 끝난 다음에 validator 실행 (self 가능)
@@ -76,10 +83,8 @@ class PasswordChangeRequest(BaseModel):
 
     @field_validator("new_password")
     @classmethod
-    def new_password_min_length(cls, v):
-        if len(v) < 8:
-            raise ValueError("비밀번호는 8자 이상이어야 합니다.")
-        return v
+    def validate_new_password(cls, v):
+        return _validate_password_complexity(v)
 
     @model_validator(mode="after")
     def passwords_match(self):
@@ -154,10 +159,8 @@ class NewPasswordRequest(BaseModel):
 
     @field_validator("new_password")
     @classmethod
-    def password_min_length(cls, v):
-        if len(v) < 8:
-            raise ValueError("비밀번호는 8자 이상이어야 합니다.")
-        return v
+    def validate_new_password(cls, v):
+        return _validate_password_complexity(v)
 
     @model_validator(mode="after")
     def passwords_match(self):
@@ -199,10 +202,17 @@ class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class RefreshTokenRequest(BaseModel):
+    """리프레시 토큰으로 액세스 토큰 재발급 요청"""
+
+    refresh_token: str
+
+
 class TokenResponse(BaseModel):
     """로그인 성공 시 토큰 반환"""
 
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
 
 
@@ -211,6 +221,7 @@ class RegisterResponse(BaseModel):
 
     user: UserResponse
     access_token: str
+    refresh_token: str
     token_type: str = "bearer"
 
 

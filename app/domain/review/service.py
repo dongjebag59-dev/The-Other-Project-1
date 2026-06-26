@@ -5,6 +5,7 @@ import logging
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 logger = logging.getLogger(__name__)
 
@@ -120,16 +121,11 @@ async def list_reviews_by_senior(
         select(Review)
         .join(MatchingInfo, Review.matching_id == MatchingInfo.matching_id)
         .where(MatchingInfo.senior_id == senior_id)
+        .options(selectinload(Review.images))
         .order_by(Review.created_at.desc(), Review.review_id.desc())
     )
     reviews = result.scalars().all()
-
-    response = []
-    for review in reviews:
-        images = await _get_images(db, review.review_id)
-        response.append(_to_response(review, images))
-
-    return response
+    return [_to_response(review, list(review.images)) for review in reviews]
 
 
 async def update_review(

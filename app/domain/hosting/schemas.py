@@ -95,6 +95,13 @@ class HostingSeniorResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class HostingUpdateRequest(BaseModel):
+    """호스팅 수정 요청 스키마 (OPEN/FULL 상태에서만 허용)."""
+
+    menu: str | None = Field(default=None, min_length=1, max_length=255)
+    max_people: int | None = Field(default=None, ge=2, le=4)
+
+
 class HostingResponse(BaseModel):
     """호스팅 응답 스키마입니다."""
 
@@ -112,3 +119,12 @@ class HostingResponse(BaseModel):
     senior: HostingSeniorResponse | None = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class HostingListResponse(BaseModel):
+    """페이지네이션이 포함된 호스팅 목록 응답."""
+
+    items: list[HostingResponse]
+    total: int
+    page: int
+    size: int

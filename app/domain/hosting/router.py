@@ -1,10 +1,17 @@
 """호스팅 API 라우터."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import get_db
-from app.domain.hosting.schemas import HostingCreateRequest, HostingResponse
+from app.domain.hosting.schemas import (
+    HostingCreateRequest,
+    HostingListResponse,
+    HostingResponse,
+    HostingUpdateRequest,
+)
 from app.domain.hosting.service import (
     cancel_hosting,
     create_hosting,
@@ -12,6 +19,7 @@ from app.domain.hosting.service import (
     get_public_hosting_detail,
     list_hostings_by_guardian,
     list_hostings_for_volunteer,
+    update_hosting,
 )
 from app.domain.user.dependency import (
     get_current_user,
@@ -61,13 +69,18 @@ async def list_hostings_endpoint(
 
 @router.get(
     "/public",
-    response_model=list[HostingResponse],
+    response_model=HostingListResponse,
     status_code=status.HTTP_200_OK,
 )
 async def list_public_hostings_endpoint(
+    page: int = Query(default=1, ge=1),
+    size: int = Query(default=20, ge=1, le=100),
+    sido: str | None = Query(default=None),
+    sigungu: str | None = Query(default=None),
+    hosting_date: date | None = Query(default=None, alias="date"),
     session: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-) -> list[HostingResponse]:
+) -> HostingListResponse:
     """승인된 봉사자 또는 관리자가 탐색 가능한 공개 호스팅 목록을 조회합니다."""
 
     is_approved_volunteer = (
@@ -80,7 +93,14 @@ async def list_public_hostings_endpoint(
             detail="승인된 봉사자만 호스팅을 탐색할 수 있습니다.",
         )
 
-    return await list_hostings_for_volunteer(session=session)
+    return await list_hostings_for_volunteer(
+        session=session,
+        page=page,
+        size=size,
+        sido=sido,
+        sigungu=sigungu,
+        hosting_date=hosting_date,
+    )
 
 
 @router.get(
@@ -118,6 +138,27 @@ async def get_hosting_detail_endpoint(
         session=session,
         guardian_id=current_guardian.user_id,
         hosting_id=hosting_id,
+    )
+
+
+@router.patch(
+    "/{hosting_id}",
+    response_model=HostingResponse,
+    status_code=status.HTTP_200_OK,
+)
+async def update_hosting_endpoint(
+    hosting_id: int,
+    request: HostingUpdateRequest,
+    session: AsyncSession = Depends(get_db),
+    current_guardian=Depends(require_guardian),
+) -> HostingResponse:
+    """호스팅 정보를 수정합니다 (메뉴, 최대 인원)."""
+
+    return await update_hosting(
+        session=session,
+        guardian_id=current_guardian.user_id,
+        hosting_id=hosting_id,
+        request=request,
     )
 
 
